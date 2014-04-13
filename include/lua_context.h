@@ -268,95 +268,168 @@ public:
         lua_getfenv( _l, index_ );
     }
 
-    /*
-LUA_API void  (lua_settable) (lua_State *L, int idx);
-LUA_API void  (lua_setfield) (lua_State *L, int idx, const char *k);
-LUA_API void  (lua_rawset) (lua_State *L, int idx);
-LUA_API void  (lua_rawseti) (lua_State *L, int idx, int n);
-LUA_API int   (lua_setmetatable) (lua_State *L, int objindex);
-LUA_API int   (lua_setfenv) (lua_State *L, int idx);*/
+    void set_tabe( int index_ ) {
+        lua_settable( _l, index_ );
+    }
 
-    /*
-LUA_API void  (lua_call) (lua_State *L, int nargs, int nresults);
-LUA_API int   (lua_pcall) (lua_State *L, int nargs, int nresults, int errfunc);
-LUA_API int   (lua_cpcall) (lua_State *L, lua_CFunction func, void *ud);
-LUA_API int   (lua_load) (lua_State *L, lua_Reader reader, void *dt,
-                                        const char *chunkname);
+    void set_field( int index_, const char* str_ ) {
+        lua_setfield( _l, index_, str_ );
+    }
 
-LUA_API int (lua_dump) (lua_State *L, lua_Writer writer, void *data);*/
+    void raw_set( int index_ ) {
+        lua_rawset( _l, index_ );
+    }
 
-    /*
-LUA_API int  (lua_yield) (lua_State *L, int nresults);
-LUA_API int  (lua_resume) (lua_State *L, int narg);
-LUA_API int  (lua_status) (lua_State *L);*/
+    void raw_seti( int index_, int n_ ) {
+        lua_rawseti( _l, index_, n_ );
+    }
 
-    /*
+    void set_meta_table( int index_ ) {
+        lua_setmetatable( _l, index_ );
+    }
 
-#define LUA_GCSTOP		0
-#define LUA_GCRESTART		1
-#define LUA_GCCOLLECT		2
-#define LUA_GCCOUNT		3
-#define LUA_GCCOUNTB		4
-#define LUA_GCSTEP		5
-#define LUA_GCSETPAUSE		6
-#define LUA_GCSETSTEPMUL	7
+    void set_fenv( int index_ ) {
+        lua_setfenv( _l, index_ );
+    }
 
-LUA_API int (lua_gc) (lua_State *L, int what, int data);*/
+    void call( int num_args_, int num_results_ ) {
+        lua_call( _l, num_args_, num_results_ );
+    }
 
-    /*
+    int pcall( int num_args_, int num_results_, int error_func_ ) {
+        lua_pcall( _l, num_args_, num_results_, error_func_ );
+    }
 
-LUA_API int   (lua_error) (lua_State *L);
+    int cpcall( lua_CFunction func_, void* ud_ ) {
+        return lua_cpcall( _l, func_, ud_ );
+    }
 
-LUA_API int   (lua_next) (lua_State *L, int idx);
+    int load( lua_Reader reader_, void* data_, const char* name_ ) {
+        return lua_load( _l, reader_, data_, name_ );
+    }
 
-LUA_API void  (lua_concat) (lua_State *L, int n);
+    int dump( lua_Writer writer_, void* data_ ) {
+        return lua_dump( _l, writer_, data_ );
+    }
 
-LUA_API lua_Alloc (lua_getallocf) (lua_State *L, void **ud);
-LUA_API void lua_setallocf (lua_State *L, lua_Alloc f, void *ud);*/
+    int yeald( int num_results_ ) {
+        return lua_yield( _l, num_results_ );
+    }
 
-    /*
+    int resume( int num_args_ ) {
+        return lua_resume( _l, num_args_ );
+    }
 
-#define lua_pop(L,n)		lua_settop(L, -(n)-1)
+    int status() {
+        return lua_status( _l );
+    }
 
-#define lua_newtable(L)		lua_createtable(L, 0, 0)
+    enum class gc_param {
+        stop = LUA_GCSTOP,
+        restart = LUA_GCRESTART,
+        collect = LUA_GCCOLLECT,
+        count = LUA_GCCOLLECT,
+        count_bytes = LUA_GCCOUNTB,
+        step = LUA_GCSTEP,
+        pause = LUA_GCSETPAUSE,
+        step_mul = LUA_GCSETSTEPMUL
+    };
+    int gc( gc_param param_, int data_ ) {
+        return lua_gc( _l, int( param_ ), data_ );
+    }
 
-#define lua_register(L,n,f) (lua_pushcfunction(L, (f)), lua_setglobal(L, (n)))
+    int error() {
+        return lua_error( _l );
+    }
 
-#define lua_pushcfunction(L,f)	lua_pushcclosure(L, (f), 0)
+    int next( int index_ ) {
+        return lua_next( _l );
+    }
 
-#define lua_strlen(L,i)		lua_objlen(L, (i))
+    void concat( int count_ ) {
+        lua_concat( _l, count_ );
+    }
 
-#define lua_isfunction(L,n)	(lua_type(L, (n)) == LUA_TFUNCTION)
-#define lua_istable(L,n)	(lua_type(L, (n)) == LUA_TTABLE)
-#define lua_islightuserdata(L,n)	(lua_type(L, (n)) == LUA_TLIGHTUSERDATA)
-#define lua_isnil(L,n)		(lua_type(L, (n)) == LUA_TNIL)
-#define lua_isboolean(L,n)	(lua_type(L, (n)) == LUA_TBOOLEAN)
-#define lua_isthread(L,n)	(lua_type(L, (n)) == LUA_TTHREAD)
-#define lua_isnone(L,n)		(lua_type(L, (n)) == LUA_TNONE)
-#define lua_isnoneornil(L, n)	(lua_type(L, (n)) <= 0)
+    lua_Alloc get_alloc_f( void*& user_data_ ) {
+        return lua_getallocf( _l, &user_data_ );
+    }
 
-#define lua_pushliteral(L, s)	\
-	lua_pushlstring(L, "" s, (sizeof(s)/sizeof(char))-1)
+    void set_alloc_f( lua_Alloc func_, void* user_data_ ) {
+        lua_setallocf( _l, func_, user_data_ );
+    }
 
-#define lua_setglobal(L,s)	lua_setfield(L, LUA_GLOBALSINDEX, (s))
-#define lua_getglobal(L,s)	lua_getfield(L, LUA_GLOBALSINDEX, (s))
+    void pop( int count_ = 1 ) {
+        lua_pop( _l, count_ );
+    }
 
-#define lua_tostring(L,i)	lua_tolstring(L, (i), NULL)*/
+    void new_table( int numbers_ = 0, int records_ = 0 ) {
+        lua_createtable( _l, index_, numbers_, records_ );
+    }
 
-/*
+    void registr( const char* nane_, lua_CFunction func_ ) {
+        lua_register( _l, name_, func_ );
+    }
 
-#define lua_open()	luaL_newstate()
+    void push_c_function( lua_CFunction func_ ) {
+        push_c_closure( func_, 0 );
+    }
 
-#define lua_getregistry(L)	lua_pushvalue(L, LUA_REGISTRYINDEX)
+    size_t strlen( int index_ ) {
+        return obj_len( index_ );
+    }
 
-#define lua_getgccount(L)	lua_gc(L, LUA_GCCOUNT, 0)
+    bool is_function( int index_ ) {
+        return 0 != lua_isfunction( _l, index_ );
+    }
 
-#define lua_Chunkreader		lua_Reader
-#define lua_Chunkwriter		lua_Writer
+    bool is_table( int index_ ) {
+        return 0 != lua_istable( _l, index_ );
+    }
 
+    bool is_light_user_data( int index_ ) {
+        return 0 != lua_islightuserdata( _l, index_ );
+    }
 
-/* hack */
-//LUA_API void lua_setlevel( lua_State *from, lua_State *to ); */
+    bool is_nil( int index_ ) {
+        return 0 != lua_isnil( _l, index_ );
+    }
+
+    bool is_boolean( int index_ ) {
+        return 0 != lua_isboolean( _l, index_ );
+    }
+
+    bool is_thread( int index_ ) {
+        return 0 != lua_isthread( _l, index_ );
+    }
+
+    bool is_none( int index_ ) {
+        return 0 != lua_isnone( _l, index_ );
+    }
+
+    bool is_none_or_nil( int index_ ) {
+        return 0 != lua_isnoneornil( _l, index_ );
+    }
+
+    template<size_t N>
+    void push_literal( const char (&lit_) [N] ) {
+        push_string( lit_, N - 1 );
+    }
+
+    void set_global( const char* str_ ) {
+        lua_setglobal( _l, str_ );
+    }
+
+    void get_global( const char* str_ ) {
+        lua_getglobal( _l, str_ );
+    }
+
+    void get_registry() {
+        lua_getregistry( _l );
+    }
+
+    int get_gc_count() {
+        return lua_getgccount( _l );
+    }
 
 /*
 #define LUA_HOOKCALL	0
