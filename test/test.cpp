@@ -45,6 +45,9 @@ void test() {
     auto set = copy.to<int, int, float, bool>( -1, -1 );
 
     auto res = call<int, float, bool>( copy.get(), 1, 2.f, true );
+
+    auto str = copy.to<const char*>( -1 );
+    auto str2 = copy.to<std::string>( -2 );
 }
 
 void main() {

@@ -26,6 +26,13 @@ to( ::lua_State* l_, int index_ ) {
 
 template<typename Type>
 inline
+typename std::enable_if<std::is_same<Type, const char*>::value, Type>::type
+to( ::lua_State* l_, int index_ ) {
+    return lua_tostring(l_, index_ );
+}
+
+template<typename Type>
+inline
 typename std::enable_if<std::is_floating_point<Type>::value, Type>::type
 to( ::lua_State* l_, int index_ ) {
     return static_cast<Type>( lua_tonumber( l_, index_ ) );

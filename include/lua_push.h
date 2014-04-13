@@ -28,6 +28,10 @@ inline void push( ::lua_State* l_, bool value_ ) {
     lua_pushboolean( l_, value_ ? 1 : 0 );
 }
 
+inline void push( ::lua_State* l_, const char* str_ ) {
+    lua_pushstring( l_, str_ );
+}
+
 inline void push( ::lua_State* l_, nil ) { lua_pushnil( l_ ); }
 
 namespace detail {
