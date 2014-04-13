@@ -41,6 +41,7 @@ inline void push_r( ::lua_State* l_, First&& first_, Args&&... args_ ) {
 
 template<typename... Args>
 inline void push( ::lua_State* l_, Args&&... args_ ) {
+    lua_checkstack( l_, sizeof...( Args ) );
     detail::push_r( l_, std::forward<Args>( args_ )... );
 }
 }

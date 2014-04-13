@@ -33,7 +33,7 @@ void test() {
     copy.to<bool>( -3 );
     copy.to<int>( -4 );
 
-    lua::push( copy.get(), 1, 2, true, 1.f );
+    copy.push( 1, 2, 3.f, 4.7, 5, 6, 7, 8, 9, true );
 }
 
 void main() {

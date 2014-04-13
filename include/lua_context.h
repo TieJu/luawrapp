@@ -494,6 +494,12 @@ public:
         push( _l, std::forward<Type>( value_ ) );
     }
 
+    template<typename... Args>
+    void push( Args... args_ ) {
+        using ::lua::push;
+        push( _l, std::forward<Args>( args_ )... );
+    }
+
     template<typename Type>
     Type to( int index_ ) {
         using ::lua::to;
