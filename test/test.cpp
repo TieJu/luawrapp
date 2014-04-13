@@ -34,6 +34,7 @@ void test() {
     copy.to<int>( -4 );
 
     copy.push( 1, 2, 3.f, 4.7, 5, 6, 7, 8, 9, true );
+    auto set = lua::to<int, int, float, bool>( copy.get(), -1, -1 );
 }
 
 void main() {
