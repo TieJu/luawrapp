@@ -505,6 +505,12 @@ public:
         using ::lua::to;
         return to<Type>( _l, index_ );
     }
+
+    template<typename... Args>
+    std::tuple<Args...> to( int index_, int step_ ) {
+        using ::lua::to;
+        return to<Args...>( _l, index_, step_ );
+    }
 };
 
 inline constexpr unsigned make_debug_mask() {
