@@ -6,6 +6,7 @@ extern "C" {
 
 #include <atomic>
 #include <memory>
+#include <bitset>
 
 namespace lua {
 namespace detail {
@@ -431,56 +432,73 @@ public:
         return lua_getgccount( _l );
     }
 
-/*
-#define LUA_HOOKCALL	0
-#define LUA_HOOKRET	1
-#define LUA_HOOKLINE	2
-#define LUA_HOOKCOUNT	3
-#define LUA_HOOKTAILRET 4*/
+    struct debug_event {
+    enum {
+        call = LUA_HOOKCALL,
+        ret = LUA_HOOKRET,
+        line = LUA_HOOKLINE,
+        count = LUA_HOOKCOUNT,
+        tail_ret = LUA_HOOKTAILRET
+    };
+    };
 
-/*
-#define LUA_MASKCALL	(1 << LUA_HOOKCALL)
-#define LUA_MASKRET	(1 << LUA_HOOKRET)
-#define LUA_MASKLINE	(1 << LUA_HOOKLINE)
-#define LUA_MASKCOUNT	(1 << LUA_HOOKCOUNT)*/
+    typedef std::bitset<5> debug_mask;
 
-/*
-typedef void (*lua_Hook) (lua_State *L, lua_Debug *ar);
+    bool get_stack( int level_, lua_Debug& dbg_ ) {
+        return 0 != lua_getstack( _l, level_, &dbg_ );
+    }
 
+    bool get_info( const char* what_, lua_Debug& dbg_ ) {
+        return 0 != lua_getinfo( _l, what_, dbg_ );
+    }
 
-LUA_API int lua_getstack (lua_State *L, int level, lua_Debug *ar);
-LUA_API int lua_getinfo (lua_State *L, const char *what, lua_Debug *ar);
-LUA_API const char *lua_getlocal (lua_State *L, const lua_Debug *ar, int n);
-LUA_API const char *lua_setlocal (lua_State *L, const lua_Debug *ar, int n);
-LUA_API const char *lua_getupvalue (lua_State *L, int funcindex, int n);
-LUA_API const char *lua_setupvalue (lua_State *L, int funcindex, int n);
-LUA_API int lua_sethook (lua_State *L, lua_Hook func, int mask, int count);
-LUA_API lua_Hook lua_gethook (lua_State *L);
-LUA_API int lua_gethookmask (lua_State *L);
-LUA_API int lua_gethookcount (lua_State *L);
+    const char* get_local( const lua_Debug& dbg_, int n_ ) {
+        return lua_getlocal( _l, &dbg_, n_ );
+    }
 
-LUA_API void *lua_upvalueid( lua_State *L, int idx, int n );
-LUA_API void lua_upvaluejoin( lua_State *L, int idx1, int n1, int idx2, int n2 );
-LUA_API int lua_loadx( lua_State *L, lua_Reader reader, void *dt,
-                       const char *chunkname, const char *mode );
-                       
-*/
-//struct lua_Debug {
-//    int event;
-//    const char *name;	/* (n) */
-//    const char *namewhat;	/* (n) `global', `local', `field', `method' */
-//    const char *what;	/* (S) `Lua', `C', `main', `tail' */
-//    const char *source;	/* (S) */
-//    int currentline;	/* (l) */
-//    int nups;		/* (u) number of upvalues */
-//    int linedefined;	/* (S) */
-//    int lastlinedefined;	/* (S) */
-//    char short_src[LUA_IDSIZE]; /* (S) */
-//    /* private part */
-//    int i_ci;  /* active function */
-//}; */
+    const char* set_local( const lua_Debug& dbg_, int n_ ) {
+        return lua_setlocal( _l, &dbg_, n_ );
+    }
+
+    const char* get_upvalue( int func_, int n_ ) {
+        return lua_getupvalue( _l, func_, n_ );
+    }
+
+    const char* set_upvalue( int func_, int n_ ) {
+        return lua_setupvalue( _l, func_, n_ );
+    }
+
+    int set_hook( lua_Hook hook_, debug_mask mask_, int count_ ) {
+        return lua_sethook( _l, hook_, mask_.to_ulong(), count_ );
+    }
+
+    lua_Hook get_hook() {
+        return lua_gethook( _l );
+    }
+
+    debug_mask get_hook_mask() {
+        return { lua_gethookmask( _l ) };
+    }
+
+    int get_hook_count() {
+        return lua_gethookcount( _l );
+    }
 };
+
+inline constexpr unsigned make_debug_mask() {
+    return 0;
 }
+
+template<typename Value, typename... Values>
+inline constexpr unsigned make_debug_mask( Value value_, Values... values_ ) {
+    return ( 1 << value_ ) | make_debug_mask( values_... );
+}
+}
+template<typename... Values>
+inline std::bitset<5> make_debug_mask( Values... values_ ) {
+    return { detail::make_debug_mask( values_... ) };
+}
+
 class unique_context
     : public detail::context_base<unique_context> {
     friend class detail::context_base<unique_context>;
