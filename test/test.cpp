@@ -1,4 +1,4 @@
-#include "luawrapp.h"
+#include "../include/luawrapp.h"
 
 #include <utility>
 
