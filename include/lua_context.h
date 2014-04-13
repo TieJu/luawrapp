@@ -58,12 +58,12 @@ public:
     template<typename D>
     void thread_of( context_base<D>& other_ ) {
         static_cast<Derived*>( this )->close_handle();
-        _l = lua_newthread( other_.get() );
+        static_cast<Derived*>( this )->attach_handle( lua_newthread( other_.get() ) );
     }
 
     void thread_of( ::lua_State* l_ ) {
         static_cast<Derived*>( this )->close_handle();
-        _l = lua_newthread( l_ );
+        static_cast<Derived*>( this )->attach_handle( lua_newthread( l_ ) );
     }
 
     int get_top() {
