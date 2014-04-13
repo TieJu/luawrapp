@@ -328,7 +328,7 @@ public:
         stop = LUA_GCSTOP,
         restart = LUA_GCRESTART,
         collect = LUA_GCCOLLECT,
-        count = LUA_GCCOLLECT,
+        count = LUA_GCCOUNT,
         count_bytes = LUA_GCCOUNTB,
         step = LUA_GCSTEP,
         pause = LUA_GCSETPAUSE,
