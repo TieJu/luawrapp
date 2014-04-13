@@ -312,7 +312,7 @@ public:
         return lua_dump( _l, writer_, data_ );
     }
 
-    int yeald( int num_results_ ) {
+    int yield( int num_results_ ) {
         return lua_yield( _l, num_results_ );
     }
 
