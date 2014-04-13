@@ -7,6 +7,10 @@ extern "C" {
 #include <atomic>
 #include <memory>
 #include <bitset>
+#include <utility>
+
+#include "lua_push.h"
+#include "lua_to.h"
 
 namespace lua {
 namespace detail {
@@ -482,6 +486,18 @@ public:
 
     int get_hook_count() {
         return lua_gethookcount( _l );
+    }
+
+    template<typename Type>
+    void push( Type value_ ) {
+        using ::lua::push;
+        push( _l, std::forward<Type>( value_ ) );
+    }
+
+    template<typename Type>
+    Type to( int index_ ) {
+        using ::lua::to;
+        return to<Type>( _l, index_ );
     }
 };
 

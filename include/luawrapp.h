@@ -5,5 +5,6 @@ extern "C" {
 }
 
 #include "lua_nil.h"
+#include "lua_to.h"
 #include "lua_push.h"
 #include "lua_context.h"
