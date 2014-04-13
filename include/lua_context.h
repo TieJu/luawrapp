@@ -16,18 +16,18 @@ protected:
 
 public:
     context_base() = default;
-    ~context_base() { static_cast<Derived*>( this )->close(); }
+    ~context_base() { static_cast<Derived*>( this )->close_handle(); }
 
     context_base( const context_base& other_ ) :_l { static_cast<const Derived*>( &other_ )->copy_handle() } {}
     context_base& operator=( const context_base& other_ ) {
-        static_cast<Derived*>( this )->close();
+        static_cast<Derived*>( this )->close_handle();
         _l = static_cast<const Derived*>( &other_ )->copy_handle();
         return *this;
     }
 
     context_base( context_base&& other_ ) :_l { other_.release() } {}
     context_base& operator=( context_base&& other_ ) {
-        static_cast<Derived*>( this )->close();
+        static_cast<Derived*>( this )->close_handle();
         _l = other_.release();
         return *this;
     }
@@ -42,7 +42,8 @@ public:
         void*       _data { nullptr };
     };
 
-    explicit context_base( init init_ ) { static_cast<Derived*>( this )->open( init_ ); }
+    explicit context_base( init init_ ) { static_cast<Derived*>( this )->open_handle( init_ ); }
+    explicit context_base( ::lua_State* l_ ) { static_cast<Derived*>( this )->attach_handle( l_ ); }
 
     ::lua_State* release() {
         auto cpy = _l;
@@ -56,12 +57,12 @@ public:
 
     template<typename D>
     void thread_of( context_base<D>& other_ ) {
-        static_cast<Derived*>( this )->close();
+        static_cast<Derived*>( this )->close_handle();
         _l = lua_newthread( other_.get() );
     }
 
     void thread_of( ::lua_State* l_ ) {
-        static_cast<Derived*>( this )->close();
+        static_cast<Derived*>( this )->close_handle();
         _l = lua_newthread( l_ );
     }
 
@@ -114,52 +115,158 @@ public:
     bool is_number( int index_ ) {
         return 0 != lua_isnumber( _l, index_ );
     }
-    /*
 
-LUA_API int             (lua_isnumber) (lua_State *L, int idx);
-LUA_API int             (lua_isstring) (lua_State *L, int idx);
-LUA_API int             (lua_iscfunction) (lua_State *L, int idx);
-LUA_API int             (lua_isuserdata) (lua_State *L, int idx);
-LUA_API int             (lua_type) (lua_State *L, int idx);
-LUA_API const char     *(lua_typename) (lua_State *L, int tp);
+    bool is_string( int index_ ) {
+        return 0 != lua_isstring( _l, index_ );
+    }
 
-LUA_API int            (lua_equal) (lua_State *L, int idx1, int idx2);
-LUA_API int            (lua_rawequal) (lua_State *L, int idx1, int idx2);
-LUA_API int            (lua_lessthan) (lua_State *L, int idx1, int idx2);
+    bool is_c_function( int index_ ) {
+        return 0 != lua_iscfunction( _l, index_ );
+    }
 
-LUA_API lua_Number      (lua_tonumber) (lua_State *L, int idx);
-LUA_API lua_Integer     (lua_tointeger) (lua_State *L, int idx);
-LUA_API int             (lua_toboolean) (lua_State *L, int idx);
-LUA_API const char     *(lua_tolstring) (lua_State *L, int idx, size_t *len);
-LUA_API size_t          (lua_objlen) (lua_State *L, int idx);
-LUA_API lua_CFunction   (lua_tocfunction) (lua_State *L, int idx);
-LUA_API void	       *(lua_touserdata) (lua_State *L, int idx);
-LUA_API lua_State      *(lua_tothread) (lua_State *L, int idx);
-LUA_API const void     *(lua_topointer) (lua_State *L, int idx);*/
+    bool is_user_data( int index_ ) {
+        return 0 != lua_isuserdata( _l, index_ );
+    }
 
-    /*
-LUA_API void  (lua_pushnil) (lua_State *L);
-LUA_API void  (lua_pushnumber) (lua_State *L, lua_Number n);
-LUA_API void  (lua_pushinteger) (lua_State *L, lua_Integer n);
-LUA_API void  (lua_pushlstring) (lua_State *L, const char *s, size_t l);
-LUA_API void  (lua_pushstring) (lua_State *L, const char *s);
-LUA_API const char *(lua_pushvfstring) (lua_State *L, const char *fmt,
-                                                      va_list argp);
-LUA_API const char *(lua_pushfstring) (lua_State *L, const char *fmt, ...);
-LUA_API void  (lua_pushcclosure) (lua_State *L, lua_CFunction fn, int n);
-LUA_API void  (lua_pushboolean) (lua_State *L, int b);
-LUA_API void  (lua_pushlightuserdata) (lua_State *L, void *p);
-LUA_API int   (lua_pushthread) (lua_State *L);*/
+    int type( int index_ ) {
+        return lua_type( _l, index_ );
+    }
 
-    /*
-LUA_API void  (lua_gettable) (lua_State *L, int idx);
-LUA_API void  (lua_getfield) (lua_State *L, int idx, const char *k);
-LUA_API void  (lua_rawget) (lua_State *L, int idx);
-LUA_API void  (lua_rawgeti) (lua_State *L, int idx, int n);
-LUA_API void  (lua_createtable) (lua_State *L, int narr, int nrec);
-LUA_API void *(lua_newuserdata) (lua_State *L, size_t sz);
-LUA_API int   (lua_getmetatable) (lua_State *L, int objindex);
-LUA_API void  (lua_getfenv) (lua_State *L, int idx);*/
+    const char* type_name( int type_ ) {
+        return lua_typename( _l, type_ );
+    }
+
+    bool equal( int first_, int second_ ) {
+        return  0 != lua_equal( _l, first_, second_ );
+    }
+
+    bool raw_equal( int first_, int second_ ) {
+        return  0 != lua_rawequal( _l, first_, second_ );
+    }
+
+    bool less_than( int first_, int second_ ) {
+        return  0 != lua_lessthan( _l, first_, second_ );
+    }
+
+    lua_Number to_number( int index_ ) {
+        return lua_tonumber( _l, index_ );
+    }
+
+    lua_Integer to_integer( int index_ ) {
+        return lua_tointeger( _l, index_ );
+    }
+
+    bool to_boolean( int index_ ) {
+        return 0 != lua_toboolean( _l, index_ );
+    }
+
+    const char* to_string( int index_, int& len_ ) {
+        return lua_tolstring( _l, index_, &len_ );
+    }
+
+    const char* to_string( int index_ ) {
+        return lua_tolstring( _l, index_, nullptr );
+    }
+
+    size_t obj_len( int index_ ) {
+        return lua_objlen( _l, index_ );
+    }
+
+    lua_CFunction to_c_function( int index_ ) {
+        return lua_tocfunction( _l, index_ );
+    }
+
+    void* to_user_data( int index_ ) {
+        return lua_touserdata( _l, index_ );
+    }
+
+    lua_State* to_thread( int index_ ) {
+        return lua_tothread( _l, index_ );
+    }
+
+    const void* to_pointer( int index_ ) {
+        return lua_topointer( _l, index_ );
+    }
+
+    void push_nil() {
+        lua_pushnil( _l );
+    }
+
+    void push_number(lua_Number v_) {
+        lua_pushnumber( _l, v_ );
+    }
+
+    void push_integer( lua_Integer v_ ) {
+        lua_pushinteger( _l, v_ );
+    }
+
+    void push_string( const char* str_, size_t len_ ) {
+        lua_pushlstring( _l, str_, len_ );
+    }
+
+    void push_string( const char* str_ ) {
+        lua_pushstring( _l, str_ );
+    }
+
+    const char* push_vfstring( const char* fmt_, va_list args_ ) {
+        return lua_pushvfstring( _l, fmt_, args_ );
+    }
+
+    const char* push_fstring( const char* fmt_, ... ) {
+        va_list args;
+        va_start( args, fmt_ );
+        auto result = lua_pushvfstring( fmt_, args );
+        va_end( args );
+        return result;
+    }
+
+    void push_c_closure( lua_CFunction fn_, int params_ ) {
+        lua_pushcclosure( _l, fn_, params_ );
+    }
+
+    void push_boolean( bool boolean_ ) {
+        lua_pushboolean( _l, boolean_ ? 1 : 0 );
+    }
+
+    void push_light_user_data( void* ptr_ ) {
+        lua_pushlightuserdata( _l, ptr_ );
+    }
+
+    void push_thread() {
+        lua_pushthread( _l );
+    }
+
+    void get_table( int index_ ) {
+        lua_gettable( _l, index_ );
+    }
+
+    void get_field( int index_, const char* str_ ) {
+        lua_getfield( _l, index_, str_ );
+    }
+
+    void raw_get( int index_ ) {
+        lua_rawget( _l, index_ );
+    }
+
+    void raw_geti( int index_ ) {
+        lua_rawgeti( _l, index_ );
+    }
+
+    void create_table( int numbers_ = 0, int records_ = 0 ) {
+        lua_createtable( _l, index_, numbers_, records_ );
+    }
+
+    void* new_user_data( size_t size_ ) {
+        return lua_newuserdata( _l, size_ );
+    }
+
+    bool get_meta_table( int index_ ) {
+        return 0 != lua_getmetatable( _l, index_ );
+    }
+
+    void get_fenv( int index_ ) {
+        lua_getfenv( _l, index_ );
+    }
 
     /*
 LUA_API void  (lua_settable) (lua_State *L, int idx);
@@ -301,11 +408,64 @@ LUA_API int lua_loadx( lua_State *L, lua_Reader reader, void *dt,
 //}; */
 };
 }
+class unique_context
+    : public detail::context_base<unique_context> {
+    friend class detail::context_base<unique_context>;
+
+    //::lua_State* copy_handle() const;
+
+    void close_handle() {
+        if ( _l ) {
+            lua_close( _l );
+            _l = nullptr;
+        }
+    }
+
+    void open_handle( init init_ ) {
+        close_handle();
+        _l = lua_newstate( init_._allocator, init_._data );
+    }
+
+    void attach_handle( ::lua_State* l_ ) {
+        close_handle();
+        _l = l_;
+    }
+
+public:
+    using detail::context_base<unique_context>::context_base;
+
+    void close() {
+        close_handle();
+    }
+
+    void open( init init_ ) {
+        open_handle( init_ );
+    }
+
+    void attach( ::lua_State* l_ ) {
+        attach_handle( l_ );
+    }
+};
+
 class context
     : public detail::context_base<context> {
     friend class detail::context_base<context>;
 
-    //::lua_State* copy_handle() const;
+    ::lua_State* copy_handle() const { return _l; }
+    
+    void close_handle() {
+        _l = nullptr;
+    }
+
+    void open_handle( init init_ ) {
+        close_handle();
+        _l = lua_newstate( init_._allocator, init_._data );
+    }
+
+    void attach_handle( ::lua_State* l_ ) {
+        close_handle();
+        _l = l_;
+    }
 
 public:
     using detail::context_base<context>::context_base;
@@ -319,12 +479,12 @@ public:
 
     void open( init init_ ) {
         close();
-        _l = lua_newstate( init_._allocator, init_._data );
+        open_handle( init_ );
     }
 
     void attach( ::lua_State* l_ ) {
         close();
-        _l = l_;
+        attach_handle( l_ );
     }
 };
 
@@ -419,26 +579,38 @@ class shared_context
         return _l;
     }
 
-public:
-    using detail::context_base<shared_context>::context_base;
-
-    void close() {
+    void close_handle() {
         if ( _l ) {
             sub_ref();
             _l = nullptr;
         }
     }
 
-    void open( init init_ ) {
-        close();
+    void open_handle( init init_ ) {
+        close_handle();
         _l = lua_newstate( init_._allocator, init_._data );
         add_ref();
     }
 
-    void attach( ::lua_State* l_ ) {
-        close();
+    void attach_handle( ::lua_State* l_ ) {
+        close_handle();
         _l = l_;
         add_ref();
+    }
+
+public:
+    using detail::context_base<shared_context>::context_base;
+
+    void close() {
+        close_handle();
+    }
+
+    void open( init init_ ) {
+        open_handle( init_ );
+    }
+
+    void attach( ::lua_State* l_ ) {
+        attach_handle( l_ );
     }
 };
 }
