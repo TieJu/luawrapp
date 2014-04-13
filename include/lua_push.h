@@ -29,4 +29,18 @@ inline void push( ::lua_State* l_, bool value_ ) {
 }
 
 inline void push( ::lua_State* l_, nil ) { lua_pushnil( l_ ); }
+
+namespace detail {
+inline void push_r( ::lua_State* l_ ) {}
+template<typename First,typename... Args>
+inline void push_r( ::lua_State* l_, First&& first_, Args&&... args_ ) {
+    push( l_, std::forward<First>( first_ ) );
+    push_r( l_, std::forward<Args>( args_ )... );
+}
+}
+
+template<typename... Args>
+inline void push( ::lua_State* l_, Args&&... args_ ) {
+    detail::push_r( l_, std::forward<Args>( args_ )... );
+}
 }

@@ -32,6 +32,8 @@ void test() {
     copy.to<float>( -2 );
     copy.to<bool>( -3 );
     copy.to<int>( -4 );
+
+    lua::push( copy.get(), 1, 2, true, 1.f );
 }
 
 void main() {
