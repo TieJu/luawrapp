@@ -2,6 +2,14 @@
 
 #include <utility>
 
+template<typename... RetArgs, typename... InArgs>
+inline std::tuple<RetArgs...> call( lua_State* l_, InArgs... args_ ) {
+    auto top = lua_gettop( l_ ) - 1;
+    lua::push( l_, std::forward<InArgs>( args_ )... );
+    lua_call( l_, sizeof...( InArgs ), sizeof...( RetArgs ) );
+    return lua::to<RetArgs...>( l_, top, 1 );
+}
+
 void test() {
     lua::context ctx {};
 
@@ -35,6 +43,8 @@ void test() {
 
     copy.push( 1, 2, 3.f, 4.7, 5, 6, 7, 8, 9, true );
     auto set = copy.to<int, int, float, bool>( -1, -1 );
+
+    auto res = call<int, float, bool>( copy.get(), 1, 2.f, true );
 }
 
 void main() {
