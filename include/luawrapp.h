@@ -4,6 +4,9 @@ extern "C" {
 #include <lua.h>
 }
 
+#include "tools_v_seq.h"
+
+#include "lua_call.h"
 #include "lua_nil.h"
 #include "lua_to.h"
 #include "lua_push.h"

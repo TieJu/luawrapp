@@ -1,4 +1,4 @@
 luawrapp
 ========
 
-C++ Wrapper for Lua
+C++ Wrapper for Lua 5.1
