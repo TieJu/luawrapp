@@ -11,8 +11,9 @@ extern "C" {
 
 namespace lua {
 template<typename Type>
-inline void push( ::lua_State* l_, Type&& value_ ) {
+inline size_t push( ::lua_State* l_, Type&& value_ ) {
     type_trait<std::decay_t<Type>>::push( l_, std::forward<Type>( value_ ) );
+    return 1;
 }
 
 namespace detail {
@@ -30,9 +31,10 @@ push_r( ::lua_State* l_, First&& first_, Args&&... args_ ) {
 }
 
 template<typename... Args>
-inline void push( ::lua_State* l_, Args&&... args_ ) {
+inline size_t push( ::lua_State* l_, Args&&... args_ ) {
     lua_checkstack( l_, sizeof...( Args ) );
     detail::push_r( l_, std::forward<Args>( args_ )... );
+    return sizeof...( Args );
 }
 
 namespace detail {
@@ -46,11 +48,13 @@ template<typename... Args>
 inline void push( ::lua_State* l_, const std::tuple<Args...>& tupl_ ) {
     lua_checkstack( l_, sizeof...( Args ) );
     detail::push_t( l_, tupl_, typename tools::gen_seq<sizeof...( Args )>::type {} );
+    return sizeof...( Args );
 }
 
 template<typename... Args>
-inline void push( ::lua_State* l_, std::tuple<Args...>&& tupl_ ) {
+inline size_t push( ::lua_State* l_, std::tuple<Args...>&& tupl_ ) {
     lua_checkstack( l_, sizeof...( Args ) );
     detail::push_t( l_, std::forward<std::tuple<Args...>>( tupl_ ), typename tools::gen_seq<sizeof...( Args )>::type {} );
+    return sizeof...( Args );
 }
 }

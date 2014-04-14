@@ -4,28 +4,11 @@
 
 #include "../include/lua_type_traits.h"
 
-template<typename Ret,typename Func,typename Tup,int... Seq>
-inline Ret invoke( Func func_, Tup&& tup_, lua::tools::seq<Seq...> ) {
-    return func_( std::get<Seq>( tup_ )... );
-}
-
-template<typename RetType, typename... InArgs>
-inline int call_proxy( ::lua_State* l_ ) {
-    typedef RetType( *func )( InArgs...args_ );
-    auto func_ = static_cast<func>( lua_touserdata( l_, lua_upvalueindex( 1 ) ) );
-    auto params = lua::to<InArgs...>( l_, 1, 1 );
-    lua::push( l_, invoke<RetType>( func_, params, typename lua::tools::gen_seq<sizeof...( InArgs )>::type {} ) );
-    return 1;
-}
-
-template<typename RetType, typename... InArgs>
-inline void wrap_func( ::lua_State*l_, RetType( *func )( InArgs... ) ) {
-    auto proxy = &call_proxy<RetType, InArgs...>;
-    lua_pushlightuserdata( l_, func );
-    lua_pushcclosure( l_, proxy, 1 );
-}
-
 int test_func( int, float ) {
+    return 0;
+}
+
+int test_func2( ::lua_State* l_, int, float ) {
     return 0;
 }
 
@@ -52,6 +35,8 @@ void test() {
     copy.push( 1.0 );
     copy.push( lua::nil {} );
     copy.push( std::make_tuple( 1, 2.f, true ) );
+    copy.push( test_func );
+    copy.push( test_func2 );
 
     copy.pop( 1 );
 
@@ -67,8 +52,6 @@ void test() {
 
     auto str = copy.to<const char*>( -1 );
     auto str2 = copy.to<std::string>( -2 );
-
-    wrap_func( copy.get(), &test_func );
 }
 
 void main() {

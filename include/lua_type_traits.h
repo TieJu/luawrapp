@@ -57,6 +57,21 @@ struct type_trait<const char*> {
     }
 };
 
+template<>
+struct type_trait<lua_CFunction> {
+    static bool is( ::lua_State* l_, int index_ ) {
+        return LUA_TFUNCTION == lua_type( l_, index_ );
+    }
+
+    static lua_CFunction to( ::lua_State* l_, int index_ ) {
+        return lua_tocfunction( l_, index_ );
+    }
+
+    static void push( ::lua_State* l_, lua_CFunction cf_ ) {
+        lua_pushcfunction( l_, cf_ );
+    }
+};
+
 template<typename Type>
 struct type_trait<Type, typename std::enable_if<std::is_floating_point<Type>::value>::type> {
     static bool is( ::lua_State* l_, int index_ ) {
