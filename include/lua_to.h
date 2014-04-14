@@ -11,31 +11,8 @@ extern "C" {
 
 namespace lua {
 template<typename Type>
-inline
-typename std::enable_if<std::is_integral<Type>::value && !std::is_same<Type,bool>::value, Type>::type
-to( ::lua_State* l_, int index_ ) {
-    return static_cast<Type>( lua_tointeger( l_, index_ ) );
-}
-
-template<typename Type>
-inline
-typename std::enable_if<std::is_same<Type, bool>::value, Type>::type
-to( ::lua_State* l_, int index_ ) {
-    return 0 != lua_toboolean( l_, index_ );
-}
-
-template<typename Type>
-inline
-typename std::enable_if<std::is_same<Type, const char*>::value, Type>::type
-to( ::lua_State* l_, int index_ ) {
-    return lua_tostring(l_, index_ );
-}
-
-template<typename Type>
-inline
-typename std::enable_if<std::is_floating_point<Type>::value, Type>::type
-to( ::lua_State* l_, int index_ ) {
-    return static_cast<Type>( lua_tonumber( l_, index_ ) );
+inline Type to( ::lua_State* l_, int index_ ) {
+    return lua::type_trait<std::decay_t<Type>>::to( l_, index_ );
 }
 
 namespace detail {

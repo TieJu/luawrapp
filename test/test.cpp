@@ -2,6 +2,8 @@
 
 #include <utility>
 
+#include "../include/lua_type_traits.h"
+
 template<typename... RetArgs, typename... InArgs>
 inline std::tuple<RetArgs...> call( lua_State* l_, InArgs... args_ ) {
     auto top = lua_gettop( l_ ) - 1;
@@ -31,10 +33,9 @@ void test() {
     copy.push( true );
     copy.push( 1.f );
     copy.push( 1.0 );
-    copy.push( nullptr );
     copy.push( lua::nil {} );
 
-    copy.pop( 2 );
+    copy.pop( 1 );
 
     copy.to<double>( -1 );
     copy.to<float>( -2 );
