@@ -12,7 +12,6 @@ extern "C" {
 #include "lua_push.h"
 #include "lua_to.h"
 #include "lua_var.h"
-#include "lua_stack.h"
 
 namespace lua {
 namespace detail {
@@ -519,6 +518,21 @@ public:
              : index_ <= LUA_REGISTRYINDEX ? _idx
              : get_top() + 1 + index_;
     }
+
+    var<Derived&, stack_index_table, stack_index> get_at_stack( int index_ ) {
+        return var<Derived&, stack_index_table, stack_index>{*static_cast<Derived*>( this ), {}, { index_ } };
+    }
+
+    template<typename Type>
+    var<Derived&, stack_index_table, stack_index> push_to_stack( Type value_ ) {
+        push( std::forward<Type>( value_ ) );
+        return get_at_stack( get_top() );
+    }
+
+    template<typename Type>
+    var<Derived&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<Derived&, stack_index_table, stack_index>> get_global_var( Type value_ ) {
+        return var<Derived&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<Derived&, stack_index_table, stack_index>> {*static_cast<Derived*>( this ), {}, { push_to_stack( value_ ) } };
+    }
 };
 
 template<typename Derived>
@@ -544,7 +558,7 @@ class unique_context
     : public detail::context_base<unique_context> {
     friend class detail::context_base<unique_context>;
 
-    //::lua_State* copy_handle() const;
+    ::lua_State* copy_handle() const = delete;
 
     void close_handle() {
         if ( _l ) {
@@ -601,6 +615,8 @@ class context
 
 public:
     using detail::context_base<context>::context_base;
+    //context( const context & ) = delete;
+    //context& operator=( const context& ) = delete;
 
     void close() {
         if ( _l ) {
@@ -617,20 +633,6 @@ public:
     void attach( ::lua_State* l_ ) {
         close();
         attach_handle( l_ );
-    }
-
-    stack_slot<context&> at_stack( int index_ ) {
-        return stack_slot<context&> { *this, index_};
-    }
-
-    stack_slot<context&> at_sack_top() {
-        return stack_slot<context&> { *this, get_top() };
-    }
-
-    template<typename Type>
-    stack_slot<context&> push_to_stack( Type&& value_ ) {
-        push( std::forward<Type>( value_ ) );
-        return stack_slot<context&> { *this, get_top() };
     }
 };
 
@@ -757,20 +759,6 @@ public:
 
     void attach( ::lua_State* l_ ) {
         attach_handle( l_ );
-    }
-
-    stack_slot<shared_context> at_stack( int index_ ) {
-        return stack_slot<shared_context> { *this, index_};
-    }
-
-    stack_slot<shared_context> at_sack_top() {
-        return stack_slot<shared_context> { *this, get_top() };
-    }
-
-    template<typename Type>
-    stack_slot<shared_context> push_to_stack( Type&& value_ ) {
-        push( std::forward<Type>( value_ ) );
-        return stack_slot<shared_context> { *this, get_top() };
     }
 };
 }

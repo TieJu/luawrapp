@@ -19,6 +19,15 @@ void test() {
 
     auto cpy = std::move(ctx);
 
+    auto c_var = cpy.push_to_stack( 5 );
+    auto scvar = make_shared( c_var );
+
+    //lua::unique_context uctx {};
+    //uctx.open( {} );
+
+    //auto u_var = uctx.push_to_stack( 7 );
+    //auto suvar = make_shared( u_var );
+
     lua::shared_context ctx2 {};
     ctx2.open( {} );
 
@@ -53,18 +62,11 @@ void test() {
     auto str = copy.to<const char*>( -1 );
     auto str2 = copy.to<std::string>( -2 );
 
-    auto var = copy.at_stack( 1 );
-    var = "test";
-
-    auto var2 = copy.push_to_stack( 5 );
-    var2 = 8;
-    int eight = var2;
-    var2.call( 1, 25, 36 );
-    var.pcall( var2, 1, 25, 84, "test" );
-
-    auto svar = var.make_shared_var();
-    svar = 5;
-    auto var3 = svar.push_to_stack();
+    auto var = copy.get_at_stack( 5 );
+    auto svar = make_shared( var );
+    auto gvar = copy.get_global_var( "test" );
+    auto ivar = index_table( var, svar );
+    auto sivar = make_shared( ivar );
 }
 
 void main() {

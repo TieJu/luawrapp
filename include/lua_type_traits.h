@@ -79,11 +79,11 @@ struct type_trait<Type, typename std::enable_if<std::is_floating_point<Type>::va
     }
 
     static Type to( ::lua_State* l_, int index_ ) {
-        return lua_tointeger( l_, index_ ) != 0;
+        return static_cast<Type>( lua_tonumber( l_, index_ ) );
     }
 
     static void push( ::lua_State* l_, Type value_ ) {
-        lua_pushinteger( l_, value_ );
+        lua_pushnumber( l_, value_ );
     }
 };
 
@@ -94,11 +94,11 @@ struct type_trait<Type, typename std::enable_if<std::is_integral<Type>::value &&
     }
 
     static Type to( ::lua_State* l_, int index_ ) {
-        return lua_tonumber( l_, index_ ) != 0;
+        return lua_tointeger( l_, index_ );
     }
 
     static void push( ::lua_State* l_, Type value_ ) {
-        lua_pushnumber( l_, value_ );
+        lua_pushinteger( l_, value_ );
     }
 };
 }
