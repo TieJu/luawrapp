@@ -5,3 +5,10 @@
 *.vcxproj
 *.filters
 /Debug
+*.tlog
+*.idb
+*.log
+
+Debug-Exe
+*.ipch
+*.dll

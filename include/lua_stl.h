@@ -1,8 +1,7 @@
 #pragma once
 
-extern "C" {
-#include <lua.h>
-}
+
+#pragma once
 
 #include <string>
 

@@ -2,6 +2,8 @@
 
 extern "C" {
 #include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
 }
 
 #include "tools_v_seq.h"

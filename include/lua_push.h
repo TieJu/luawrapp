@@ -1,8 +1,5 @@
 #pragma once
 
-extern "C" {
-#include <lua.h>
-}
 
 #include "lua_nil.h"
 #include "lua_type_traits.h"

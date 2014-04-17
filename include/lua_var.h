@@ -1,9 +1,5 @@
 #pragma once
 
-extern "C" {
-#include <lua.h>
-}
-
 #include <utility>
 #include <cassert>
 #include <memory>

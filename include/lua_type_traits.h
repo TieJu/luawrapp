@@ -2,10 +2,6 @@
 
 #include <type_traits>
 
-extern "C" {
-#include <lua.h>
-}
-
 #include "lua_nil.h"
 
 namespace lua {

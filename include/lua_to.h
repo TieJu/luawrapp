@@ -3,10 +3,6 @@
 #include <type_traits>
 #include <tuple>
 
-extern "C" {
-#include <lua.h>
-}
-
 #include "lua_nil.h"
 
 namespace lua {

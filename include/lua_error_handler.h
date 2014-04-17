@@ -1,8 +1,5 @@
 #pragma once
 
-extern "C" {
-#include <lua.h>
-}
 
 namespace lua {
 inline int error_handler(lua_State *l_) {

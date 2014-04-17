@@ -1,8 +1,5 @@
 #pragma once
 
-extern "C" {
-#include <lua.h>
-}
 
 #include "tools_v_seq.h"
 

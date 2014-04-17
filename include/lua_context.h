@@ -1,9 +1,5 @@
 #pragma once
 
-extern "C" {
-#include <lua.h>
-}
-
 #include <atomic>
 #include <memory>
 #include <bitset>
@@ -570,7 +566,11 @@ class unique_context
 
     void open_handle( init init_ ) {
         close_handle();
-        _l = lua_newstate( init_._allocator, init_._data );
+        if ( init_._allocator ) {
+            _l = lua_newstate( init_._allocator, init_._data );
+        } else {
+            _l = luaL_newstate();
+        }
     }
 
     void attach_handle( ::lua_State* l_ ) {
@@ -604,9 +604,13 @@ class context
         _l = nullptr;
     }
 
-    void open_handle( init init_ ) {
+    inline void open_handle( init init_ ) {
         close_handle();
-        _l = lua_newstate( init_._allocator, init_._data );
+        if ( init_._allocator ) {
+            _l = lua_newstate( init_._allocator, init_._data );
+        } else {
+            _l = luaL_newstate();
+        }
     }
 
     void attach_handle( ::lua_State* l_ ) {
@@ -737,7 +741,11 @@ class shared_context
 
     void open_handle( init init_ ) {
         close_handle();
-        _l = lua_newstate( init_._allocator, init_._data );
+        if ( init_._allocator ) {
+            _l = lua_newstate( init_._allocator, init_._data );
+        } else {
+            _l = luaL_newstate();
+        }
         add_ref();
     }
 
