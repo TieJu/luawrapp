@@ -54,49 +54,67 @@ struct test_context {
         getchar();
     }
 };
-#define DefTest(name_, code_) struct name_ { name_(test_context& ctx_ ) { ctx_.begin_test(#name_); code_ ctx_.test_ok(); } };
-DefTest( unique_context, {
-    lua::unique_context ctx;
-    ctx.open( {} );
-} )
-DefTest( shared_context, {
+
+struct test_token {
+    virtual ~test_token() = default;
+    virtual void run( test_context& __tctx__ ) = 0;
+};
+
+template<typename Test>
+struct test_instance : test_token {
+    Test _instance;
+    virtual void run( test_context& __tctx__ ) override {
+        __tctx__.begin_test( _instance.name() );
+        try {
+            _instance.run_test( __tctx__ );
+            __tctx__.test_ok();
+        } catch ( const std::exception& e_ ) {
+            __tctx__.test_failed( e_.what() );
+        } catch ( ... ) {
+            __tctx__.test_failed();
+        }
+    }
+};
+
+std::vector<std::unique_ptr<test_token>> _test_set;
+
+void do_all_tests() {
+    test_context ctx {};
+    for ( auto& test : _test_set ) {
+        test->run(ctx);
+    }
+}
+
+template<typename RegTest>
+test_token* reg_test() {
+    auto ptr = new test_instance<RegTest> {};
+    _test_set.emplace_back( ptr );
+    return ptr;
+}
+
+#define TestClassName(case_,name_) case_##name_##_test
+#define Test(case_,name_) \
+struct TestClassName( case_, name_ ) {\
+    const char* name() { return #case_": "#name_; }\
+    void run_test(test_context& __tctx__);\
+    static test_token* _tok;\
+};\
+    test_token* TestClassName( case_, name_ )::_tok = reg_test<TestClassName( case_, name_ )>();\
+    void TestClassName( case_, name_ )::run_test(test_context& __tctx__)
+
+Test( context, unique ) {
+        lua::unique_context ctx;
+        ctx.open( {} );
+}
+
+Test( context, shared ) {
     lua::shared_context ctx;
     ctx.open( {} );
 
     auto copy = ctx;
+
     ctx.close();
-} )
-
-template<typename... Tests>
-struct test_set {
-
-    template<typename First>
-    void do_tests( test_context& ctx_ ) {
-        try {
-            First f { ctx_ };
-        } catch ( const std::exception& e_ ) {
-            ctx_.test_failed( e_.what() );
-        } catch ( ... ) {
-            ctx_.test_failed();
-        }
-    }
-    template<typename First, typename... Others>
-    typename std::enable_if<sizeof...( Others ) != 0>::type do_tests( test_context & ctx_ ) {
-        try {
-            First f { ctx_ };
-        } catch ( ... ) {
-            ctx_.test_failed();
-        }
-        do_tests<Others...>(ctx_);
-    }
-
-    test_set() {
-        test_context ctx;
-        do_tests<Tests...>(ctx);
-    }
-
-}; 
-
+}
 void main() {
-    test_set<unique_context, shared_context> test {};
+    do_all_tests();
 }
