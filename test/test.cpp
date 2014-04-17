@@ -52,6 +52,19 @@ void test() {
 
     auto str = copy.to<const char*>( -1 );
     auto str2 = copy.to<std::string>( -2 );
+
+    auto var = copy.at_stack( 1 );
+    var = "test";
+
+    auto var2 = copy.push_to_stack( 5 );
+    var2 = 8;
+    int eight = var2;
+    var2.call( 1, 25, 36 );
+    var.pcall( var2, 1, 25, 84, "test" );
+
+    auto svar = var.make_shared_var();
+    svar = 5;
+    auto var3 = svar.push_to_stack();
 }
 
 void main() {
