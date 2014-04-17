@@ -530,8 +530,9 @@ public:
     }
 
     template<typename Type>
-    var<Derived&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<Derived&, stack_index_table, stack_index>> get_global_var( Type value_ ) {
-        return var<Derived&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<Derived&, stack_index_table, stack_index>> {*static_cast<Derived*>( this ), {}, { push_to_stack( value_ ) } };
+    var<Derived&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> get_global_var( Type value_ ) {
+        auto index = push_to_stack( value_ );
+        return var<Derived&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> {*static_cast<Derived*>( this ), {}, { index.table(), index.index() } };
     }
 };
 

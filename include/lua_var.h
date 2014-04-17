@@ -30,12 +30,16 @@ public:
     }
     ~var() = default;
 
-    const State& state() const {
+    State& state() const {
         return _state;
     }
 
-    State& state() {
-        return _state;
+    TableRef& table() const {
+        return _table;
+    }
+
+    IndexRef& index() const {
+        return _index;
     }
 
     template<typename Type>
@@ -64,12 +68,13 @@ public:
     }
 };
 
-template<typename State, typename TableRef, typename IndexRef>
+template<typename TableRef, typename IndexRef>
 struct var_on_stack_as_table {
-    var<State, TableRef, IndexRef> _table;
+    TableRef    _table;
+    IndexRef    _index;
     template<typename State, typename Index>
     void set_at_from_stack( State& state_, Index& index_, int init_from_ ) {
-        int at = _table.push();
+        int at = _table.push_at( state_, _index );
         index_.push( state_ );
         state_.push_value( init_from_ );
         state_.set_table( at );
@@ -78,7 +83,7 @@ struct var_on_stack_as_table {
 
     template<typename State, typename Index, typename Type>
     void set_at( State& state_, Index& index_, Type value_ ) {
-        int at = _table.push();
+        int at = _table.push_at( state_, _index );
         index_.push( state_ );
         state_.push( std::forward<Value>( value_ ) );
         state_.set_table( at );
@@ -92,7 +97,7 @@ struct var_on_stack_as_table {
 
     template<typename State, typename Index>
     int push_at( State& state_, Index& index_ ) {
-        int at = _table.push();
+        int at = _table.push_at( state_, _index );
         index_.push( state_ );
         state_.get_table( at );
         state_.remove( at );
@@ -173,7 +178,7 @@ struct self_pointer_index {
     }
 };
 
-struct lua_value_at_stack_as_index {
+struct value_at_stack_as_index {
     int _pos;
     template<typename State>
     void push( State& state_ ) {
@@ -184,17 +189,17 @@ struct lua_value_at_stack_as_index {
     }
 };
 
-template<typename State, typename TableRef, typename IndexRef>
+template<typename TableRef, typename IndexRef>
 struct var_as_index {
-    var<State, TableRef, IndexRef>  _var;
+    TableRef    _table;
+    IndexRef    _index;
+
     template<typename State>
     void push( State& state_ ) {
-        assert( state_ == _var.state() );
-        _var.push();
+        _table.push_at( state_, _index );
     }
     void push( ::lua_State* state_ ) {
-        assert( state_ == _var.state().get() );
-        _var.push();
+        _table.push_at( context { state_ }, _index );
     }
 };
 
@@ -255,8 +260,8 @@ inline var<std::decay_t<State>, raw_static_index_table<LUA_REGISTRYINDEX>, self_
     return var<std::decay_t<State>, raw_static_index_table<LUA_REGISTRYINDEX>, self_pointer_index> { var_.state(), {}, {}, var_.push(), true };
 }
 
-template<typename State, typename TableRef, typename IndexRef, typename State2, typename TableRef2, typename IndexRef2>
-inline var<State, var_on_stack_as_table<State, TableRef, IndexRef>, var_as_index<State2, TableRef2, IndexRef2>> index_table( const var<State, TableRef, IndexRef>& table_, const var<State2, TableRef2, IndexRef2>& index_ ) {
-    return var<State, var_on_stack_as_table<State, TableRef, IndexRef>, var_as_index<State2, TableRef2, IndexRef2>> {table_.state(), { table_ }, { index_ }};
+template<typename State, typename TableRef, typename IndexRef, typename TableRef2, typename IndexRef2, typename State2>
+inline var<State, var_on_stack_as_table< TableRef, IndexRef>, var_as_index<TableRef2, IndexRef2>> index_table( const var<State, TableRef, IndexRef>& table_, const var<State2, TableRef2, IndexRef2>& index_ ) {
+    return var<State, var_on_stack_as_table<TableRef, IndexRef>, var_as_index<TableRef2, IndexRef2>> {table_.state(), { table_.table(), table_.index() }, { index_.table(), index_.index() }};
 }
 }
