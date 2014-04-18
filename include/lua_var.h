@@ -81,7 +81,7 @@ struct var_on_stack_as_table {
     void set_at( State& state_, Index& index_, Type value_ ) {
         int at = _table.push_at( state_, _index );
         index_.push( state_ );
-        state_.push( std::forward<Value>( value_ ) );
+        state_.push( std::forward<Type>( value_ ) );
         state_.set_table( at );
         state_.remove( at );
     }
@@ -113,7 +113,7 @@ struct raw_static_index_table {
     template<typename State, typename Index, typename Type>
     void set_at( State& state_, Index& index_, Type value_ ) {
         index_.push( state_ );
-        state_.push( std::forward<Value>( value_ ) );
+        state_.push( std::forward<Type>( value_ ) );
         state_.raw_set( IndexValue );
     }
 

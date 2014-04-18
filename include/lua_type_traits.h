@@ -90,7 +90,7 @@ struct type_trait<Type, typename std::enable_if<std::is_integral<Type>::value &&
     }
 
     static Type to( ::lua_State* l_, int index_ ) {
-        return lua_tointeger( l_, index_ );
+        return static_cast<Type>( lua_tointeger( l_, index_ ) );
     }
 
     static void push( ::lua_State* l_, Type value_ ) {
