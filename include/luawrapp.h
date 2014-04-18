@@ -9,6 +9,7 @@ extern "C" {
 #include "tools_v_seq.h"
 
 #include "lua_stack_marker.h"
+#include "lua_stack.h"
 #include "lua_type_traits.h"
 #include "lua_light_user_data.h"
 #include "lua_function.h"

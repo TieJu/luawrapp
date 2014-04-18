@@ -255,7 +255,7 @@ public:
     }
 
     void create_table( int numbers_ = 0, int records_ = 0 ) {
-        lua_createtable( _l, index_, numbers_, records_ );
+        lua_createtable( _l, numbers_, records_ );
     }
 
     void* new_user_data( size_t size_ ) {
@@ -345,7 +345,7 @@ public:
     }
 
     int next( int index_ ) {
-        return lua_next( _l );
+        return lua_next( _l, index_ );
     }
 
     void concat( int count_ ) {
@@ -365,7 +365,7 @@ public:
     }
 
     void new_table( int numbers_ = 0, int records_ = 0 ) {
-        lua_createtable( _l, index_, numbers_, records_ );
+        lua_createtable( _l, numbers_, records_ );
     }
 
     void registr( const char* nane_, lua_CFunction func_ ) {
@@ -507,6 +507,11 @@ public:
     std::tuple<Args...> to( int index_, int step_ ) {
         using ::lua::to;
         return to<Args...>( _l, index_, step_ );
+    }
+
+    template<typename Type>
+    bool is( int index_ ) {
+        return lua::type_trait<Type>::is( _l, index_ );
     }
 
     int abs_stack_index( int index_ ) const {

@@ -195,6 +195,21 @@ Test( context, call_test ) {
         lua::call( ctx.get(), "test", 8, 9 );
     }
 }
+
+Test( context, test_stack_obj ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+
+    gctx = &__tctx__;
+    {
+        lua::stack<lua::unique_context&> stack { ctx };
+        stack.push( "print" );
+        stack.push( test_print );
+        stack.set_tabe( LUA_GLOBALSINDEX );
+        EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print" );
+    }
+}
+
 void main() {
     do_all_tests();
 }
