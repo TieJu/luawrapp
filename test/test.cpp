@@ -163,7 +163,7 @@ Test( context, test_function_wrap ) {
     ctx.push( "print" );
     ctx.push( test_print );
     ctx.set_tabe( LUA_GLOBALSINDEX );
-    EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print_failed" );
+    EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print" );
 }
 
 Test( context, var_wrapper ) {
@@ -174,7 +174,26 @@ Test( context, var_wrapper ) {
     auto marker = ctx.mark_stack();
     auto global = ctx.get_global_var( "print" );
     global.set( test_print );
-    EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print_failed" );
+    EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print" );
+}
+
+Test( context, call_test ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+
+    gctx = &__tctx__;
+    {
+        auto marker = ctx.mark_stack();
+        auto global = ctx.get_global_var( "print" );
+        global.set( test_print );
+    }
+
+    {
+        auto marker = ctx.mark_stack(); 
+        auto global = ctx.get_global_var( "print" );
+        int pos = global.push();
+        lua::call( ctx.get(), "test", 8, 9 );
+    }
 }
 void main() {
     do_all_tests();
