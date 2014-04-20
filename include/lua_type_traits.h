@@ -29,7 +29,7 @@ struct type_trait<nil> {
         return LUA_TNIL == lua_type( l_, index_ );
     }
 
-    static nil to( ::lua_State* l_, int index_ ) {
+    static nil to( ::lua_State* /*l_*/, int /*index_*/ ) {
         return {};
     }
 

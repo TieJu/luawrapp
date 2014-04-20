@@ -13,7 +13,7 @@ inline Type to( ::lua_State* l_, int index_ ) {
 
 namespace detail {
 template<typename First>
-inline std::tuple<First> to_r( ::lua_State* l_, int index_, int step_ ) {
+inline std::tuple<First> to_r( ::lua_State* l_, int index_, int /*step_*/ ) {
     return std::make_tuple( to<First>( l_, index_ ) );
 }
 template<typename First, typename... Args>
