@@ -318,6 +318,14 @@ struct register_class_test_class {
         _name += std::to_string( second_ );
         _name += third_;
     }
+
+    void set( int i_ ) {
+        _name = std::to_string( i_ );
+    }
+
+    void set( const char* str_ ) {
+        _name = str_;
+    }
 };
 
 namespace lua {
@@ -373,6 +381,11 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
         add_method( l_, "get_name", methods, metatable, &register_class_test_class::get_name );
         add_method( l_, "set_name2", methods, metatable, &register_class_test_class::set_name2 );
 
+        begin_overloaded_method( l_, methods, metatable, "set" );
+        add_overloaded_method_variant( l_, methods, metatable, (void( register_class_test_class::*)(int)) &register_class_test_class::set );
+        add_overloaded_method_variant( l_, methods, metatable, (void( register_class_test_class::* )(const char*))&register_class_test_class::set );
+        end_overloaded_method( l_, methods, metatable );
+
         end_class_reg( l_ );
     }
 };
@@ -386,7 +399,7 @@ Test( context, register_class ) {
     gctx = &__tctx__;
 
     ctx.reg_type<register_class_test_class>();
-    auto test_code = "t = test(\"first\"); t:print(); t:set_name(\"second\"); t:print(); t:set_name(t:get_name()..5); t:print() t:set_name2(\"this\",5,\"is ok\"); t:print()";
+    auto test_code = "t = test(\"first\"); t:print(); t:set_name(\"second\"); t:print(); t:set_name(t:get_name()..5); t:print() t:set_name2(\"this\",5,\"is ok\"); t:print(); t:set(5) t:print(); t:set(\"test\"); t:print()";
     bool ok = ( 0 == luaL_dostring( ctx.get(), test_code ) );
     if ( !ok ) {
         auto error = ctx.to_string( -1 );
@@ -394,7 +407,7 @@ Test( context, register_class ) {
             INFO_LOG( "lua error was %s", error );
         }
     }
-    EXPECT_TRUE( ok, "t = test(\"first\"); t:print(); t:set_name(\"second\"); t:print(); t:set_name(t:get_name()..5); t:print() t:set_name2(\"this\",5,\"is ok\"); t:print()" );
+    EXPECT_TRUE( ok, "t = test(\"first\"); t:print(); t:set_name(\"second\"); t:print(); t:set_name(t:get_name()..5); t:print() t:set_name2(\"this\",5,\"is ok\"); t:print(); t:set(5) t:print(); t:set(\"test\"); t:print()" );
 }
 
 void main() {

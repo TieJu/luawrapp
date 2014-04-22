@@ -1,5 +1,10 @@
 #pragma once
 namespace lua {
+    inline void dump_stack_types( ::lua_State* l_ ) {
+        for ( int i = 1; i <= lua_gettop( l_ ); ++i ) {
+            printf( "[%i] %s\r\n", i, lua_typename( l_, lua_type( l_, i ) ) );
+        }
+    }
 template<typename Class, typename Derived>
 struct class_trait_base {
     static std::tuple<int, int> begin_class_reg( ::lua_State* l_ ) {
@@ -156,20 +161,20 @@ struct class_trait_base {
     }
 
     template<typename... Args>
-    static bool validate_function_params( ::lua_State* l_ ) {
-        if ( lua_gettop( l_ ) != sizeof...( Args ) ) {
+    static bool validate_function_params( ::lua_State* l_, int offset_ = 0 ) {
+        if ( lua_gettop( l_ ) != sizeof...( Args ) + offset_ ) {
             return false;
         }
         return is<Args...>( l_, 1, 1 );
     }
 
-    static bool validate_function_params_np( ::lua_State*l_ ) {
-        return lua_gettop( l_ ) == 0;
+    static bool validate_function_params_np( ::lua_State*l_, int offset_ = 0 ) {
+        return lua_gettop( l_ ) == offset_;
     }
 
     template<typename... Args>
-    static bool validate_method_params( ::lua_State* l_ ) {
-        if ( lua_gettop( l_ ) != sizeof...( Args ) + 1 ) {
+    static bool validate_method_params( ::lua_State* l_, int offset_ = 0 ) {
+        if ( lua_gettop( l_ ) != sizeof...( Args ) + 1 + offset_) {
             return false;
         }
         if ( !Derived::is( l_, 1 ) ) {
@@ -178,22 +183,83 @@ struct class_trait_base {
         return is<Args...>( l_, 2, 1 );
     }
 
-    static bool validate_method_params_np( ::lua_State*l_ ) {
-        if ( lua_gettop( l_ ) != 1 ) {
+    static bool validate_method_params_np( ::lua_State*l_, int offset_ = 0 ) {
+        if ( lua_gettop( l_ ) != 1 + offset_ ) {
             return false;
         }
-        return Derived::is( l_, -1 );
+        return Derived::is( l_, 1 );
     }
 
-    static void begin_overloaded_method( ::lua_State* l_, int medthod_table_, int metha_table_, const char* name_ ) {}
+    static int overloaded_function_router( ::lua_State* l_ ) {
+        typedef bool( *validate_type )( ::lua_State*, int );
+        auto table = lua_upvalueindex( 1 );
+        lua_pushnil( l_ );
+        while ( lua_next( l_, table ) ) {
+            auto& clb = *reinterpret_cast<const validate_type*>( lua_topointer( l_, -2 ) );
+            if ( clb( l_, 2 ) ) {
+                lua_insert( l_, 1 );
+                lua_pop( l_, 1 );
+                lua_call( l_, lua_gettop( l_ ) - 1, LUA_MULTRET );
+                return lua_gettop( l_ );
+            } else {
+                lua_pop( l_, 1 );
+            }
+        }
+        return 0;
+    }
+
+    static int overloaded_method_router( ::lua_State* l_ ) {
+        return overloaded_function_router( l_ );
+    }
+
+    static void begin_overloaded_method( ::lua_State* l_, int medthod_table_, int metha_table_, const char* name_ ) {
+        lua_pushstring( l_, name_ );
+        lua_newtable( l_ );
+    }
+
     template<typename RetType, typename... Args>
-    static void add_overloaded_method_variant( ::lua_State* l_, int medthod_table_, int metha_table_, RetType( Class::*method_ )( Args... ) ) {}
+    static void add_overloaded_method_variant( ::lua_State* l_, int medthod_table_, int metha_table_, RetType( Class::*function_ )( Args... ) ) {
+        typedef bool( *validator_type )( ::lua_State*, int );
+        typedef decltype( function_ ) function_type;
+        *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_method_params<Args...>;
+        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
+        lua_pushcclosure( l_, &method_proxy<RetType, Args...>, 1 );
+        lua_settable( l_, -3 );
+    }
+
     template<typename... Args>
-    static void add_overloaded_method_variant( ::lua_State* l_, int medthod_table_, int metha_table_, void( Class::*method_ )( Args... ) ) {}
+    static void add_overloaded_method_variant( ::lua_State* l_, int medthod_table_, int metha_table_, void( Class::*function_ )( Args... ) ) {
+        typedef bool( *validator_type )( ::lua_State*, int );
+        typedef decltype( function_ ) function_type;
+        *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_method_params<Args...>;
+        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
+        lua_pushcclosure( l_, &method_proxy_nr<Args...>, 1 );
+        lua_settable( l_, -3 );
+    }
+
     template<typename RetType>
-    static void add_overloaded_method_variant( ::lua_State* l_, int medthod_table_, int metha_table_, RetType( Class::*method_ )( ) ) {}
-    static void add_overloaded_method_variant( ::lua_State* l_, int medthod_table_, int metha_table_, void( Class::*method_ )( ) ) {}
-    static void end_overloaded_method( ::lua_State* l_, int medthod_table_, int metha_table_ ) {}
+    static void add_overloaded_method_variant( ::lua_State* l_, int medthod_table_, int metha_table_, RetType( Class::*function_ )( ) ) {
+        typedef bool( *validator_type )( ::lua_State*, int );
+        typedef decltype( function_ ) function_type;
+        *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_method_params_np;
+        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
+        lua_pushcclosure( l_, &method_proxy_np<RetType>, 1 );
+        lua_settable( l_, -3 );
+    }
+
+    static void add_overloaded_method_variant( ::lua_State* l_, int medthod_table_, int metha_table_, void( Class::*function_ )( ) ) {
+        typedef bool( *validator_type )( ::lua_State*, int );
+        typedef decltype( function_ ) function_type;
+        *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_method_params_np;
+        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
+        lua_pushcclosure( l_, &method_proxy_nr_np, 1 );
+        lua_settable( l_, -3 );
+    }
+
+    static void end_overloaded_method( ::lua_State* l_, int medthod_table_, int metha_table_ ) {
+        lua_pushcclosure( l_, overloaded_method_router, 1 );
+        lua_settable( l_, medthod_table_ );
+    }
 
     template<typename RetType, typename... Args>
     static void add_method( ::lua_State* l_, const char* name_, int medthod_table_, int metha_table_, RetType( Class::*method_ )( Args... ) ) {
@@ -227,15 +293,54 @@ struct class_trait_base {
         lua_settable( l_, medthod_table_ );
     }
 
-    static void begin_overloaded_function( ::lua_State* l_, int medthod_table_, int metha_table_, const char* name_ ) {}
+    static void begin_overloaded_function( ::lua_State* l_, int medthod_table_, int metha_table_, const char* name_ ) {
+        lua_pushstring( l_, name_ );
+        lua_newtable( l_ );
+    }
+
     template<typename RetType, typename... Args>
-    static void add_overloaded_function_variant( ::lua_State* l_, int medthod_table_, int metha_table_, RetType( *function_ )( Args... ) ) {}
+    static void add_overloaded_function_variant( ::lua_State* l_, int medthod_table_, int metha_table_, RetType( *function_ )( Args... ) ) {
+        typedef bool( *validator_type )( ::lua_State*, int );
+        typedef decltype( function_ ) function_type;
+        *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_function_params<Args...>;
+        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
+        lua_pushcclosure( l_, &function_proxy<RetType, Args...>, 1 );
+        lua_settable( l_, -3 );
+    }
+
     template<typename... Args>
-    static void add_overloaded_function_variant( ::lua_State* l_, int medthod_table_, int metha_table_, void( *function_ )( Args... ) ) {}
+    static void add_overloaded_function_variant( ::lua_State* l_, int medthod_table_, int metha_table_, void( *function_ )( Args... ) ) {
+        typedef bool( *validator_type )( ::lua_State*, int );
+        typedef decltype( function_ ) function_type;
+        *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_function_params<Args...>;
+        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
+        lua_pushcclosure( l_, &function_proxy_nr<Args...>, 1 );
+        lua_settable( l_, -3 );
+    }
+
     template<typename RetType>
-    static void add_overloaded_function_variant( ::lua_State* l_, int medthod_table_, int metha_table_, RetType( *function_ )( ) ) {}
-    static void add_overloaded_function_variant( ::lua_State* l_, int medthod_table_, int metha_table_, void( *function_ )( ) ) {}
-    static void end_overloaded_function( ::lua_State* l_, int medthod_table_, int metha_table_ ) {}
+    static void add_overloaded_function_variant( ::lua_State* l_, int medthod_table_, int metha_table_, RetType( *function_ )( ) ) {
+        typedef bool( *validator_type )( ::lua_State*, int );
+        typedef decltype( function_ ) function_type;
+        *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_function_params_np;
+        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
+        lua_pushcclosure( l_, &function_proxy_np<RetType>, 1 );
+        lua_settable( l_, -3 );
+    }
+
+    static void add_overloaded_function_variant( ::lua_State* l_, int medthod_table_, int metha_table_, void( *function_ )( ) ) {
+        typedef bool( *validator_type )( ::lua_State*, int );
+        typedef decltype( function_ ) function_type;
+        *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_function_params_np;
+        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
+        lua_pushcclosure( l_, &function_proxy_nr_np, 1 );
+        lua_settable( l_, -3 );
+    }
+
+    static void end_overloaded_function( ::lua_State* l_, int medthod_table_, int metha_table_ ) {
+        lua_pushcclosure( l_, overloaded_function_router, 1 );
+        lua_settable( l_, medthod_table_ );
+    }
 
     template<typename RetType, typename... Args>
     static void add_function( ::lua_State* l_, const char* name_, int medthod_table_, int metha_table_, RetType( *function_ )( Args... ) ) {
