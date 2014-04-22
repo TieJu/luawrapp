@@ -14,6 +14,7 @@ extern "C" {
 #include "lua_error_handler.h"
 #include "lua_call.h"
 #include "lua_nil.h"
+#include "lua_is.h"
 #include "lua_to.h"
 #include "lua_push.h"
 #include "lua_var.h"
@@ -21,6 +22,9 @@ extern "C" {
 #include "lua_stack_block.h"
 #include "lua_garbage_collector.h"
 #include "lua_debug.h"
+#include "lua_namespace_def.h"
+#include "lua_class_def.h"
 #include "lua_context.h"
+#include "lua_class_trait_base.h"
 
 #include "lua_stl.h"

@@ -183,7 +183,7 @@ struct stack {
         lua_getfenv( static_cast<Derived*>( this )->get(), index_ );
     }
 
-    void set_tabe( int index_ ) {
+    void set_table( int index_ ) {
         lua_settable( static_cast<Derived*>( this )->get(), index_ );
     }
 

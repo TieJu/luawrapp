@@ -162,7 +162,7 @@ Test( context, test_function_wrap ) {
     gctx = &__tctx__;
     ctx.push( "print" );
     ctx.push( test_print );
-    ctx.set_tabe( LUA_GLOBALSINDEX );
+    ctx.set_table( LUA_GLOBALSINDEX );
     EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print" );
 }
 
@@ -202,12 +202,210 @@ Test( context, test_stack_obj ) {
 
     gctx = &__tctx__;
     {
-        lua::stack<lua::unique_context&> stack { ctx };
+        auto stack = ctx.begin_stack_block();
         stack.push( "print" );
         stack.push( test_print );
-        stack.set_tabe( LUA_GLOBALSINDEX );
+        stack.set_table( LUA_GLOBALSINDEX );
         EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print" );
     }
+}
+
+struct export_test_class {
+    std::string _name_var;
+    int         _prop_int { 0 };
+    int get_int() { return _prop_int; }
+    void set_int( int i_ ) { _prop_int = i_; }
+
+    void print() {
+        gctx->info_log( "export_test_class at %p { %s; %d }", this, _name_var.c_str(), _prop_int );
+    }
+
+    static void static_test() {
+        gctx->info_log( "static_test called" );
+    }
+
+    export_test_class() = default;
+    export_test_class( const char* name_, int i_ ) : _name_var { name_ }, _prop_int { i_ } {}
+};
+
+Test( context, test_class_def ) {
+    lua::unique_context ctx;
+
+    ctx.open( {} );
+
+    gctx = &__tctx__;
+
+    ctx.begin_class<export_test_class>( "test" )
+        .constructor()
+        .constructor<const char*, int>()
+        .method( "print", &export_test_class::print )
+        .property( "int", &export_test_class::get_int, &export_test_class::set_int )
+        .member( "name", &export_test_class::_name_var )
+        .function( "static_test", &export_test_class::static_test )
+        .end();
+    bool ok = ( 0 == luaL_dostring( ctx.get(), "test.static_test();\n t = test.new();\n t:static_test();\n  t:print();\n --t.name = \"test\";\n --t.int = 5;\n" ) );
+    if ( !ok ) {
+        auto error = ctx.to_string( -1 );
+        if ( error ) {
+            INFO_LOG( "lua error was %s", error );
+        }
+    }
+    EXPECT_TRUE( ok , "t = test.new(); t.name = \"test\"; t.int = 5; t:print();" );
+}
+
+Test( context, open ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+
+    EXPECT_TRUE( ctx.get() != nullptr, "valid lua context" );
+}
+
+Test( context, load_std_lib ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+
+    luaL_openlibs( ctx.get() );
+    auto test_code = "print(5)";
+    EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), test_code ), "openlibs" );
+}
+
+static int test_function( lua_State*  ) {
+    gctx->info_log( __FUNCTION__" called" );
+    return 0;
+}
+
+Test( context, register_function ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+
+    gctx = &__tctx__;
+    ctx.push( test_function );
+    ctx.set_global( "test" );
+    auto test_code = "test()";
+    EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), test_code ), "call user function" );
+}
+
+static int script_called_function( lua_State* l_ ) {
+    lua_pushliteral( l_, "ok" );
+    return 1;
+}
+
+Test( context, call_script ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+
+    ctx.push( script_called_function );
+    ctx.set_global( "test" );
+    ctx.get_global( "test" );
+    ctx.call( 0, 1 );
+    EXPECT_TRUE( ctx.is_string( -1 ), "calling test function" );
+}
+
+struct register_class_test_class {
+    std::string _name;
+    register_class_test_class( const char* name_ ) : _name { name_ } {}
+    void print() {
+        gctx->info_log( "test at %p = %s", this, _name.c_str() );
+    }
+    void set_name( const char* name_ ) {
+        _name = name_;
+    }
+    const char* get_name() {
+        return _name.c_str();
+    }
+    void set_name2( const char* name_, int second_, const char* third_ ) {
+        _name = name_;
+        _name += std::to_string( second_ );
+        _name += third_;
+    }
+};
+
+namespace lua {
+template<>
+struct type_trait<register_class_test_class> : class_trait_base<register_class_test_class, type_trait<register_class_test_class>> {
+    static const char*          name;
+    static const new_type       new_list[];
+
+    static bool is( ::lua_State* l_, int index_ ) {
+        return nullptr != luaL_checkudata( l_, index_, name );
+    }
+
+    static register_class_test_class& to( ::lua_State* l_, int index_ ) {
+        auto self = static_cast<register_class_test_class*>( const_cast<void*>( luaL_checkudata( l_, index_, name ) ) );
+        if ( !self ) {
+            luaL_typerror( l_, index_, name );
+            throw std::runtime_error { "bad lua var" };
+        }
+        return *self;
+    }
+
+    static register_class_test_class* void_new( ::lua_State* l_ ) {
+        if ( lua_gettop( l_ ) != 0 ) {
+            return nullptr;
+        }
+
+        return new ( lua_newuserdata( l_, sizeof( register_class_test_class ) ) ) register_class_test_class { "" };
+    }
+
+    static register_class_test_class* string_new( ::lua_State* l_ ) {
+        if ( lua_gettop( l_ ) != 1 ) {
+            return nullptr;
+        }
+        if ( !lua_isstring( l_, 1 ) ) {
+            return nullptr;
+        }
+
+        return new ( lua_newuserdata( l_, sizeof( register_class_test_class ) ) ) register_class_test_class { lua_tostring( l_, 1 ) };
+    }
+
+    static int method_router( ::lua_State* l_ ) {
+        auto table = reinterpret_cast<const lua_CFunction*>( lua_touserdata( l_, lua_upvalueindex( 1 ) ) );
+        int result = 0;
+        for ( auto e = table; e; ++e ) {
+            if ( ( result = ( *e )( l_ ) ) ) {
+                break;
+            }
+        }
+        return result - 1;
+    }
+
+    static void reg_type( ::lua_State* l_ ) {
+        int metatable, methods;
+
+        std::tie( metatable, methods ) = begin_class_reg( l_ );
+
+        add_method( l_, "print", methods, metatable, &register_class_test_class::print );
+        add_method( l_, "set_name", methods, metatable, &register_class_test_class::set_name );
+        add_method( l_, "get_name", methods, metatable, &register_class_test_class::get_name );
+        add_method( l_, "set_name2", methods, metatable, &register_class_test_class::set_name2 );
+
+        end_class_reg( l_ );
+    }
+};
+
+const char* type_trait<register_class_test_class>::name = "test";
+const type_trait<register_class_test_class>::new_type type_trait<register_class_test_class>::new_list[] = {
+    void_new,
+    string_new,
+    nullptr
+};
+}
+
+Test( context, register_class ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+    gctx = &__tctx__;
+
+    ctx.reg_type<register_class_test_class>();
+    auto test_code = "t = test(\"first\"); t:print(); t:set_name(\"second\"); t:print(); t:set_name(t:get_name()..5); t:print() t:set_name2(\"this\",5,\"is ok\"); t:print()";
+    bool ok = ( 0 == luaL_dostring( ctx.get(), test_code ) );
+    if ( !ok ) {
+        auto error = ctx.to_string( -1 );
+        if ( error ) {
+            INFO_LOG( "lua error was %s", error );
+        }
+    }
+    EXPECT_TRUE( ok, "t = test(\"first\"); t:print(); t:set_name(\"second\"); t:print(); t:set_name(t:get_name()..5); t:print() t:set_name2(\"this\",5,\"is ok\"); t:print()" );
 }
 
 void main() {
