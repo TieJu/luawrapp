@@ -286,7 +286,7 @@ struct class_trait_base {
 
     static int on_gc( ::lua_State* l_ ) {
         auto& self = Derived::to( l_, 1 );
-        self.~Class();
+        Derived::destroy( l_, self );
         return 0;
     }
 

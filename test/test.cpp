@@ -335,6 +335,10 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
         }
     }
 
+    static void destroy( ::lua_State* /*l_*/, register_class_test_class& self_ ) {
+        self_.~register_class_test_class();
+    }
+
     static bool is( ::lua_State* l_, int index_ ) {
         return nullptr != luaL_checkudata( l_, index_, name );
     }
