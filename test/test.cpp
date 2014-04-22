@@ -324,7 +324,16 @@ namespace lua {
 template<>
 struct type_trait<register_class_test_class> : class_trait_base<register_class_test_class, type_trait<register_class_test_class>> {
     static const char*          name;
-    static const new_type       new_list[];
+
+    static register_class_test_class* create( lua_State* l_ ) {
+        if ( lua_gettop( l_ ) == 0 ) {
+            return new ( lua_newuserdata( l_, sizeof( register_class_test_class ) ) ) register_class_test_class { "" };
+        } else if ( lua_gettop( l_ ) == 1 && lua_isstring( l_, 1 ) ) {
+            return new ( lua_newuserdata( l_, sizeof( register_class_test_class ) ) ) register_class_test_class { lua_tostring( l_, 1 ) };
+        } else {
+            return nullptr;
+        }
+    }
 
     static bool is( ::lua_State* l_, int index_ ) {
         return nullptr != luaL_checkudata( l_, index_, name );
@@ -337,25 +346,6 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
             throw std::runtime_error { "bad lua var" };
         }
         return *self;
-    }
-
-    static register_class_test_class* void_new( ::lua_State* l_ ) {
-        if ( lua_gettop( l_ ) != 0 ) {
-            return nullptr;
-        }
-
-        return new ( lua_newuserdata( l_, sizeof( register_class_test_class ) ) ) register_class_test_class { "" };
-    }
-
-    static register_class_test_class* string_new( ::lua_State* l_ ) {
-        if ( lua_gettop( l_ ) != 1 ) {
-            return nullptr;
-        }
-        if ( !lua_isstring( l_, 1 ) ) {
-            return nullptr;
-        }
-
-        return new ( lua_newuserdata( l_, sizeof( register_class_test_class ) ) ) register_class_test_class { lua_tostring( l_, 1 ) };
     }
 
     static int method_router( ::lua_State* l_ ) {
@@ -384,11 +374,6 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
 };
 
 const char* type_trait<register_class_test_class>::name = "test";
-const type_trait<register_class_test_class>::new_type type_trait<register_class_test_class>::new_list[] = {
-    void_new,
-    string_new,
-    nullptr
-};
 }
 
 Test( context, register_class ) {

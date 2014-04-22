@@ -290,18 +290,12 @@ struct class_trait_base {
         return 0;
     }
 
-    typedef Class* ( *new_type )( ::lua_State* );
     static int on_new( ::lua_State* l_ ) {
         if ( lua_istable( l_, 1 ) ) {
             lua_remove( l_, 1 );    // first param is table if the __call is called
         }
-        Class* inst = nullptr;
-        for ( auto nw = Derived::new_list; nw; ++nw ) {
-            inst = ( *nw )( l_ );
-            if ( inst ) {
-                break;
-            }
-        }
+        auto inst = Derived::create( l_ );
+
         if ( inst ) {
             luaL_getmetatable( l_, Derived::name );
             lua_setmetatable( l_, -2 );
