@@ -71,7 +71,7 @@ struct class_trait_base {
     template<typename RetType, typename... Args>
     static int function_proxy( ::lua_State *l_ ) {
         typedef RetType( *callback )( );
-        if ( lua_gettop( l_ ) != sizeof...( Args ) ) {
+        if ( !validate_function_params<Args...>( l_ ) ) {
             return 0;
         }
         auto func = *static_cast<const callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
@@ -81,7 +81,7 @@ struct class_trait_base {
     template<typename... Args>
     static int function_proxy_nr( ::lua_State *l_ ) {
         typedef void( *callback )( );
-        if ( lua_gettop( l_ ) != sizeof...( Args ) ) {
+        if ( !validate_function_params<Args...>( l_ ) ) {
             return 0;
         }
         auto func = *static_cast<const callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
@@ -92,7 +92,7 @@ struct class_trait_base {
     template<typename RetType>
     static int function_proxy_np( ::lua_State *l_ ) {
         typedef RetType( *callback )( );
-        if ( lua_gettop( l_ ) != 0 ) {
+        if ( !validate_function_params_np( l_ ) ) {
             return 0;
         }
         auto func = *static_cast<const callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
@@ -101,7 +101,7 @@ struct class_trait_base {
 
     static int function_proxy_nr_np( ::lua_State *l_ ) {
         typedef void( *callback )( );
-        if ( lua_gettop( l_ ) != 0 ) {
+        if ( !validate_function_params_np( l_ ) ) {
             return 0;
         }
         auto func = *static_cast<const callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
@@ -112,7 +112,7 @@ struct class_trait_base {
     template<typename RetType, typename... Args>
     static int method_proxy( ::lua_State *l_ ) {
         typedef RetType( Class::*member_callback )( Args... args_ );
-        if ( lua_gettop( l_ ) != sizeof...(Args)+1 ) {
+        if ( !validate_method_params<Args...>( l_ ) ) {
             return 0;
         }
         auto& self = Derived::to( l_, 1 );
@@ -123,7 +123,7 @@ struct class_trait_base {
     template<typename... Args>
     static int method_proxy_nr( ::lua_State *l_ ) {
         typedef void( Class::*member_callback )( Args... args_ );
-        if ( lua_gettop( l_ ) != sizeof...( Args ) + 1 ) {
+        if ( !validate_method_params<Args...>( l_ ) ) {
             return 0;
         }
         auto& self = Derived::to( l_, 1 );
@@ -135,7 +135,7 @@ struct class_trait_base {
     template<typename RetType>
     static int method_proxy_np( ::lua_State *l_ ) {
         typedef RetType( Class::*member_callback )( );
-        if ( lua_gettop( l_ ) != 1 ) {
+        if ( !validate_method_params_np( l_ ) ) {
             return 0;
         }
         auto& self = Derived::to( l_, 1 );
@@ -146,7 +146,7 @@ struct class_trait_base {
 
     static int method_proxy_nr_np( ::lua_State *l_ ) {
         typedef void( Class::*member_callback )( );
-        if ( lua_gettop( l_ ) != 1 ) {
+        if ( !validate_method_params_np( l_ ) ) {
             return 0;
         }
         auto& self = Derived::to( l_, 1 );
@@ -156,19 +156,19 @@ struct class_trait_base {
     }
 
     template<typename... Args>
-    bool validate_function_params( ::lua_State* l_ ) {
+    static bool validate_function_params( ::lua_State* l_ ) {
         if ( lua_gettop( l_ ) != sizeof...( Args ) ) {
             return false;
         }
         return is<Args...>( l_, 1, 1 );
     }
 
-    bool validate_function_params_np( ::lua_State*l_ ) {
+    static bool validate_function_params_np( ::lua_State*l_ ) {
         return lua_gettop( l_ ) == 0;
     }
 
     template<typename... Args>
-    bool validate_method_params( ::lua_State* l_ ) {
+    static bool validate_method_params( ::lua_State* l_ ) {
         if ( lua_gettop( l_ ) != sizeof...( Args ) + 1 ) {
             return false;
         }
@@ -178,7 +178,7 @@ struct class_trait_base {
         return is<Args...>( l_, 2, 1 );
     }
 
-    bool validate_method_params_np( ::lua_State*l_ ) {
+    static bool validate_method_params_np( ::lua_State*l_ ) {
         if ( lua_gettop( l_ ) != 1 ) {
             return false;
         }
