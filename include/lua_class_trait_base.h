@@ -272,6 +272,12 @@ struct class_trait_base {
         lua_settable( l_, medthod_table_ );
     }
 
+    static void add_raw_function( ::lua_State* l_, const char* name_, int medthod_table_, int metha_table_, lua_CFunction func_ ) {
+        lua_pushstring( l_, name_ );
+        lua_pushcclosure( l_, func_, 0 );
+        lua_settable( l_, medthod_table_ );
+    }
+
     static int on_to_string( ::lua_State* l_ ) {
         auto& self = Derived::to( l_, 1 );
         lua_pushfstring( l_, "%s (%08p)", Derived::name, &self );
