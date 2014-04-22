@@ -340,7 +340,7 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
     }
 
     static register_class_test_class& to( ::lua_State* l_, int index_ ) {
-        auto self = static_cast<register_class_test_class*>( const_cast<void*>( luaL_checkudata( l_, index_, name ) ) );
+        auto self = static_cast<register_class_test_class*>( luaL_checkudata( l_, index_, name ) );
         if ( !self ) {
             luaL_typerror( l_, index_, name );
             throw std::runtime_error { "bad lua var" };

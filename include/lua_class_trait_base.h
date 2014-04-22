@@ -291,9 +291,11 @@ struct class_trait_base {
     }
 
     static int on_new( ::lua_State* l_ ) {
-        if ( lua_istable( l_, 1 ) ) {
+        lua_getglobal( l_, Derived::name );
+        if ( lua_equal( l_, -1, 1 ) ) {
             lua_remove( l_, 1 );    // first param is table if the __call is called
         }
+        lua_pop( l_, 1 );
         auto inst = Derived::create( l_ );
 
         if ( inst ) {
