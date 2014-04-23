@@ -326,6 +326,14 @@ struct register_class_test_class {
     void set( const char* str_ ) {
         _name = str_;
     }
+
+    void name_set( const char* name_ ) {
+        _name = name_;
+    }
+
+    const char* name_get() {
+        return _name.c_str();
+    }
 };
 
 namespace lua {
@@ -372,21 +380,28 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
     }
 
     static void reg_type( ::lua_State* l_ ) {
-        int metatable, methods;
+        auto tables = begin_class_reg( l_ );
+        auto metatable = tables._meta_table;
+        auto methods = tables._method_table;
+        auto geter = tables._geter_table;
+        auto seter = tables._seter_table;
 
-        std::tie( metatable, methods ) = begin_class_reg( l_ );
+        add_method( l_, "print", methods, &register_class_test_class::print );
+        add_method( l_, "set_name", methods, &register_class_test_class::set_name );
+        add_method( l_, "get_name", methods, &register_class_test_class::get_name );
+        add_method( l_, "set_name2", methods, &register_class_test_class::set_name2 );
 
-        add_method( l_, "print", methods, metatable, &register_class_test_class::print );
-        add_method( l_, "set_name", methods, metatable, &register_class_test_class::set_name );
-        add_method( l_, "get_name", methods, metatable, &register_class_test_class::get_name );
-        add_method( l_, "set_name2", methods, metatable, &register_class_test_class::set_name2 );
+        begin_overloaded_method( l_, "set" );
+        add_overloaded_method_variant( l_, (void( register_class_test_class::*)(int)) &register_class_test_class::set );
+        add_overloaded_method_variant( l_, (void( register_class_test_class::* )(const char*))&register_class_test_class::set );
+        end_overloaded_method( l_, methods );
 
-        begin_overloaded_method( l_, methods, metatable, "set" );
-        add_overloaded_method_variant( l_, methods, metatable, (void( register_class_test_class::*)(int)) &register_class_test_class::set );
-        add_overloaded_method_variant( l_, methods, metatable, (void( register_class_test_class::* )(const char*))&register_class_test_class::set );
-        end_overloaded_method( l_, methods, metatable );
+        add_property( l_, "my_name", geter, seter, &register_class_test_class::name_get, &register_class_test_class::name_set );
+        add_member( l_, "_name", geter, seter, &register_class_test_class::_name );
 
-        end_class_reg( l_ );
+        add_constant( l_, "default", methods, "default" );
+
+        end_class_reg( l_, tables );
     }
 };
 
@@ -399,7 +414,7 @@ Test( context, register_class ) {
     gctx = &__tctx__;
 
     ctx.reg_type<register_class_test_class>();
-    auto test_code = "t = test(\"first\"); t:print(); t:set_name(\"second\"); t:print(); t:set_name(t:get_name()..5); t:print() t:set_name2(\"this\",5,\"is ok\"); t:print(); t:set(5) t:print(); t:set(\"test\"); t:print()";
+    auto test_code = "function test:print_test() self:print() end\nlocal t = test(\"first\")\nt:print_test()\nt:set_name(\"second\")\nt:print()\nt:set_name(t:get_name()..5)\nt:print()\nt:set_name2(\"this\",5,\"is ok\")\nt:print()\nt:set(5)\nt:print()\nt:set(\"test\")\nt:print()\nt.my_name = \"my name\"\nt:print()\nt.my_name = t.my_name .. 5\nt:print()\nt._name = \"_name\"\nt:print()\n t._name = test.default\nt:print()\n";
     bool ok = ( 0 == luaL_dostring( ctx.get(), test_code ) );
     if ( !ok ) {
         auto error = ctx.to_string( -1 );
@@ -407,7 +422,7 @@ Test( context, register_class ) {
             INFO_LOG( "lua error was %s", error );
         }
     }
-    EXPECT_TRUE( ok, "t = test(\"first\"); t:print(); t:set_name(\"second\"); t:print(); t:set_name(t:get_name()..5); t:print() t:set_name2(\"this\",5,\"is ok\"); t:print(); t:set(5) t:print(); t:set(\"test\"); t:print()" );
+    EXPECT_TRUE( ok, "function test:print_test() self:print() end\nlocal t = test(\"first\")\nt:print_test()\nt:set_name(\"second\")\nt:print()\nt:set_name(t:get_name()..5)\nt:print()\nt:set_name2(\"this\",5,\"is ok\")\nt:print()\nt:set(5)\nt:print()\nt:set(\"test\")\nt:print()\nt.my_name = \"my name\"\nt:print()\nt.my_name = t.my_name .. 5\nt:print()\nt._name = \"_name\"\nt:print()\n t._name = test.default\nt:print()\n" );
 }
 
 void main() {
