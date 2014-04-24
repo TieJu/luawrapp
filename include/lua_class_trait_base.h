@@ -337,7 +337,7 @@ struct class_trait_base {
             }
             decltype( auto ) self = Derived::to( l_, 1 );
             auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-            return ::lua::push( l_, ( self.*member )( ) );
+            return static_cast<int>( ::lua::push( l_, ( self.*member )( ) ) );
         }, 1 );
         lua_settable( l_, medthod_table_ );
     }
@@ -493,7 +493,7 @@ struct class_trait_base {
             lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
                 auto& self = Derived::to( l_, 1 );
                 auto geter = *reinterpret_cast<const geter_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-                return ::lua::push( l_, ( self.*geter )( ) );
+                return static_cast<int>( ::lua::push( l_, ( self.*geter )( ) ) );
             }, 1 );
             lua_settable( l_, geter_table_ );
         }
@@ -545,7 +545,7 @@ struct class_trait_base {
         lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
             auto& self = Derived::to( l_, 1 );
             auto member = *reinterpret_cast<const member_pointer*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-            return ::lua::push( l_, self.*member );
+            return static_cast<int>( ::lua::push( l_, self.*member ) );
         }, 1 );
         lua_settable( l_, geter_table_ );
 

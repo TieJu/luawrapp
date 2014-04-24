@@ -145,11 +145,11 @@ public:
     }
 
     stack_block<Derived&> mark_stack() {
-        return { *static_cast<Derived*>( this ) };
+        return { static_cast<Derived&>( *this ) };
     }
 
     stack_block<Derived&> begin_stack_block() {
-        return { *static_cast<Derived*>( this ) };
+        return { static_cast<Derived&>( *this ) };
     }
 
     template<typename Type>

@@ -95,7 +95,7 @@ struct type_trait<void( *)( void )> {
         return LUA_TFUNCTION == lua_type( l_, index_ );
     }
 
-    static type to( ::lua_State* l_, int index_ ) {
+    static type to( ::lua_State* /*l_*/, int /*index_*/ ) {
         //return lua_tonumber( l_, index_ ) != 0;
         return nullptr;
     }

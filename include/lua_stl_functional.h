@@ -40,7 +40,7 @@ struct type_trait<std::function<Ret(Args...)>> {
         ::lua::push( l_, functor_( ::lua::to<Args>( l_, 2 + Seq )... ) );
     }
 
-    static void register_this( ::lua_State* l_ ) {
+    static void reg_type( ::lua_State* l_ ) {
         if ( !luaL_newmetatable( l_, type_name() ) ) {
             return;
         }
@@ -65,7 +65,7 @@ struct type_trait<std::function<Ret(Args...)>> {
     }
 
     static int push( ::lua_State* l_, value_type func_ ) {
-        register_this( l_ );
+        reg_type( l_ );
 
         new ( lua_newuserdata( l_, sizeof( value_type ) ) ) value_type { std::move( func_ ) };
         luaL_getmetatable( l_, type_name() );
@@ -111,7 +111,7 @@ struct type_trait<std::function<void( Args... )>> {
         functor_( ::lua::to<Args>( l_, 2 + Seq )... );
     }
 
-    static void register_this( ::lua_State* l_ ) {
+    static void reg_type( ::lua_State* l_ ) {
         if ( !luaL_newmetatable( l_, type_name() ) ) {
             return;
         }
@@ -137,7 +137,7 @@ struct type_trait<std::function<void( Args... )>> {
     }
 
     static int push( ::lua_State* l_, value_type func_ ) {
-        register_this( l_ );
+        reg_type( l_ );
 
         new ( lua_newuserdata( l_, sizeof( value_type ) ) ) value_type { std::move( func_ ) };
         luaL_getmetatable( l_, type_name() );
@@ -175,7 +175,7 @@ struct type_trait<std::function<Ret()>> {
         return is( l_, 1 );
     }
 
-    static void register_this( ::lua_State* l_ ) {
+    static void reg_type( ::lua_State* l_ ) {
         if ( !luaL_newmetatable( l_, type_name() ) ) {
             return;
         }
@@ -200,7 +200,7 @@ struct type_trait<std::function<Ret()>> {
     }
 
     static int push( ::lua_State* l_, value_type func_ ) {
-        register_this( l_ );
+        reg_type( l_ );
 
         new ( lua_newuserdata( l_, sizeof( value_type ) ) ) value_type { std::move( func_ ) };
         luaL_getmetatable( l_, type_name() );
@@ -222,7 +222,7 @@ struct type_trait<std::function<void()>> {
     }
 
     static bool is( ::lua_State* l_, int index_ ) {
-        return luaL_checkudata( l_, index_, type_name() );
+        return nullptr != luaL_checkudata( l_, index_, type_name() );
     }
 
     static value_type& to( ::lua_State* l_, int index_ ) {
@@ -238,7 +238,7 @@ struct type_trait<std::function<void()>> {
         return is( l_, 1 );
     }
 
-    static void register_this( ::lua_State* l_ ) {
+    static void reg_type( ::lua_State* l_ ) {
         if ( !luaL_newmetatable( l_, type_name() ) ) {
             return;
         }
@@ -264,7 +264,7 @@ struct type_trait<std::function<void()>> {
     }
 
     static int push( ::lua_State* l_, value_type func_ ) {
-        register_this( l_ );
+        reg_type( l_ );
 
         new ( lua_newuserdata( l_, sizeof( value_type ) ) ) value_type { std::move( func_ ) };
         luaL_getmetatable( l_, type_name() );

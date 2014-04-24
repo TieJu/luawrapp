@@ -10,6 +10,8 @@
 
 #include <Windows.h>
 
+#pragma warning(disable:4100)
+
 struct test_context {
     HANDLE con;
     unsigned started { 0 };

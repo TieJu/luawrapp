@@ -8,7 +8,7 @@ class stack_block
     int     _top;
 
 public:
-    stack_block( State state_ ) : _state { std::move( state_ ) } { recapture_top(); }
+    stack_block( State state_ ) : _state { std::forward<State>( state_ ) } { recapture_top(); }
     ~stack_block() { reset_top(); }
 
     stack_block( const stack_block & ) = delete;
