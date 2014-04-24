@@ -6,6 +6,7 @@
 #include <vector>
 #include <type_traits>
 #include <varargs.h>
+#include <functional>
 
 #include <Windows.h>
 
@@ -398,6 +399,29 @@ Test( context, register_class ) {
         }
     }
     EXPECT_TRUE( ok, "function test:print_test() self:print() end\nlocal t = test(\"first\")\nt:print_test()\nt:set_name(\"second\")\nt:print()\nt:set_name(t:get_name()..5)\nt:print()\nt:set_name2(\"this\",5,\"is ok\")\nt:print()\nt:set(5)\nt:print()\nt:set(\"test\")\nt:print()\nt.my_name = \"my name\"\nt:print()\nt.my_name = t.my_name .. 5\nt:print()\nt._name = \"_name\"\nt:print()\n t._name = test.default\nt:print()\n" );
+}
+
+Test( context, function ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+    gctx = &__tctx__;
+
+    bool exec = false;
+    ctx.push( std::function<void( const char*msg )>( [&__tctx__,&exec]( const char* str_ ) {
+        __tctx__.info_log( "function %s", str_ );
+        exec = !strcmp( str_, "test message" );
+    } ) );
+    ctx.set_global( "test_func" );
+    auto test_code = "test_func(\"test message\")";
+    bool ok = ( 0 == luaL_dostring( ctx.get(), test_code ) );
+    if ( !ok ) {
+        auto error = ctx.to_string( -1 );
+        if ( error ) {
+            INFO_LOG( "lua error was %s", error );
+        }
+    }
+    EXPECT_TRUE( ok, "test_func(\"test message\")" );
+    EXPECT_TRUE( exec, "test_func invoked" );
 }
 
 void main() {
