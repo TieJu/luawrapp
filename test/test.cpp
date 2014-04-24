@@ -228,31 +228,6 @@ struct export_test_class {
     export_test_class( const char* name_, int i_ ) : _name_var { name_ }, _prop_int { i_ } {}
 };
 
-Test( context, test_class_def ) {
-    lua::unique_context ctx;
-
-    ctx.open( {} );
-
-    gctx = &__tctx__;
-
-    ctx.begin_class<export_test_class>( "test" )
-        .constructor()
-        .constructor<const char*, int>()
-        .method( "print", &export_test_class::print )
-        .property( "int", &export_test_class::get_int, &export_test_class::set_int )
-        .member( "name", &export_test_class::_name_var )
-        .function( "static_test", &export_test_class::static_test )
-        .end();
-    bool ok = ( 0 == luaL_dostring( ctx.get(), "test.static_test();\n t = test.new();\n t:static_test();\n  t:print();\n --t.name = \"test\";\n --t.int = 5;\n" ) );
-    if ( !ok ) {
-        auto error = ctx.to_string( -1 );
-        if ( error ) {
-            INFO_LOG( "lua error was %s", error );
-        }
-    }
-    EXPECT_TRUE( ok , "t = test.new(); t.name = \"test\"; t.int = 5; t:print();" );
-}
-
 Test( context, open ) {
     lua::unique_context ctx;
     ctx.open( {} );

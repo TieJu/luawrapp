@@ -152,11 +152,6 @@ public:
         return { *static_cast<Derived*>( this ) };
     }
 
-    template<typename Class>
-    class_def<Derived&, Class> begin_class( const char* name_ ) {
-        return { name_, *static_cast<Derived*>( this ) };
-    }
-
     template<typename Type>
     void reg_type() {
         type_trait<Type>::reg_type( _l );
