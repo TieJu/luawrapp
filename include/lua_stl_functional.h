@@ -10,8 +10,7 @@ struct type_trait<std::function<Ret(Args...)>> {
         // '\0' + len of "std::function[]" + two chars per byte
         static char name[1 + 15 + sizeof(void*)* 2] = { 0 };
         if ( !name[0] ) {
-            // using pointer to this function as a uniqe id
-            sprintf_s( name, "std::function[%p]", &type_name );
+            sprintf_s( name, "std::function[%p]", &typeid( value_type ) );
         }
         return name;
     }
@@ -82,8 +81,7 @@ struct type_trait<std::function<void( Args... )>> {
         // '\0' + len of "std::function[]" + two chars per byte
         static char name[1 + 15 + sizeof(void*) * 2] = { 0 };
         if ( !name[0] ) {
-            // using pointer to this function as a uniqe id
-            sprintf_s( name, "std::function[%p]", &type_name );
+            sprintf_s( name, "std::function[%p]", &typeid( value_type ) );
         }
         return name;
     }
@@ -155,8 +153,7 @@ struct type_trait<std::function<Ret()>> {
         // '\0' + len of "std::function[]" + two chars per byte
         static char name[1 + 15 + sizeof(void*)* 2] = { 0 };
         if ( !name[0] ) {
-            // using pointer to this function as a uniqe id
-            sprintf_s( name, "std::function[%p]", &type_name );
+            sprintf_s( name, "std::function[%p]", &typeid( value_type ) );
         }
         return name;
     }
@@ -219,8 +216,7 @@ struct type_trait<std::function<void()>> {
         // '\0' + len of "std::function[]" + two chars per byte
         static char name[1 + 15 + sizeof(void*)* 2] = { 0 };
         if ( !name[0] ) {
-            // using pointer to this function as a uniqe id
-            sprintf_s( name, "std::function[%p]", &type_name );
+            sprintf_s( name, "std::function[%p]", &typeid( value_type ) );
         }
         return name;
     }
