@@ -173,93 +173,6 @@ struct class_trait_base {
         ( self_->*mp_ )( to<Args>( l_, first_ + Seq * step_ )... );
     }
 
-    template<typename RetType, typename... Args>
-    static int function_proxy( ::lua_State *l_ ) {
-        typedef RetType( *callback )( );
-        if ( !validate_function_params<Args...>( l_ ) ) {
-            return 0;
-        }
-        auto func = *static_cast<const callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-        return invoke_function( l_, func, 1, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
-    }
-
-    template<typename... Args>
-    static int function_proxy_nr( ::lua_State *l_ ) {
-        typedef void( *callback )( );
-        if ( !validate_function_params<Args...>( l_ ) ) {
-            return 0;
-        }
-        auto func = *static_cast<const callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-        invoke_function_nr( l_, func, 1, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
-        return 0;
-    }
-
-    template<typename RetType>
-    static int function_proxy_np( ::lua_State *l_ ) {
-        typedef RetType( *callback )( );
-        if ( !validate_function_params_np( l_ ) ) {
-            return 0;
-        }
-        auto func = *static_cast<const callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-        return push( l_, func() );
-    }
-
-    static int function_proxy_nr_np( ::lua_State *l_ ) {
-        typedef void( *callback )( );
-        if ( !validate_function_params_np( l_ ) ) {
-            return 0;
-        }
-        auto func = *static_cast<const callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-        func();
-        return 0;
-    }
-
-    template<typename RetType, typename... Args>
-    static int method_proxy( ::lua_State *l_ ) {
-        typedef RetType( Class::*member_callback )( Args... args_ );
-        if ( !validate_method_params<Args...>( l_ ) ) {
-            return 0;
-        }
-        auto& self = Derived::to( l_, 1 );
-        auto member = *static_cast<const member_callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-        return inoke_method( l_, &self, member, 2, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
-    }
-
-    template<typename... Args>
-    static int method_proxy_nr( ::lua_State *l_ ) {
-        typedef void( Class::*member_callback )( Args... args_ );
-        if ( !validate_method_params<Args...>( l_ ) ) {
-            return 0;
-        }
-        auto& self = Derived::to( l_, 1 );
-        auto member = *static_cast<const member_callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-        inoke_method_nr( l_, &self, member, 2, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
-        return 0;
-    }
-
-    template<typename RetType>
-    static int method_proxy_np( ::lua_State *l_ ) {
-        typedef RetType( Class::*member_callback )( );
-        if ( !validate_method_params_np( l_ ) ) {
-            return 0;
-        }
-        auto& self = Derived::to( l_, 1 );
-        auto member = *static_cast<const member_callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-        push( l_, ( self.*member )( ) );
-        return 1;
-    }
-
-    static int method_proxy_nr_np( ::lua_State *l_ ) {
-        typedef void( Class::*member_callback )( );
-        if ( !validate_method_params_np( l_ ) ) {
-            return 0;
-        }
-        auto& self = Derived::to( l_, 1 );
-        auto member = *static_cast<const member_callback*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
-        ( self.*member )( );
-        return 0;
-    }
-
     template<typename... Args>
     static bool validate_function_params( ::lua_State* l_, int offset_ = 0 ) {
         if ( lua_gettop( l_ ) != sizeof...( Args ) + offset_ ) {
@@ -318,41 +231,62 @@ struct class_trait_base {
     }
 
     template<typename RetType, typename... Args>
-    static void add_overloaded_method_variant( ::lua_State* l_, RetType( Class::*function_ )( Args... ) ) {
+    static void add_overloaded_method_variant( ::lua_State* l_, RetType( Class::*method_ )( Args... ) ) {
         typedef bool( *validator_type )( ::lua_State*, int );
-        typedef decltype( function_ ) function_type;
+        typedef decltype( method_ ) method_type;
         *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_method_params<Args...>;
-        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &method_proxy<RetType, Args...>, 1 );
+        *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            decltype( auto ) self = Derived::to( l_, 1 );
+            auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            return inoke_method( l_, &self, member, 2, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
+        }, 1 );
         lua_settable( l_, -3 );
     }
 
     template<typename... Args>
-    static void add_overloaded_method_variant( ::lua_State* l_, void( Class::*function_ )( Args... ) ) {
+    static void add_overloaded_method_variant( ::lua_State* l_, void( Class::*method_ )( Args... ) ) {
         typedef bool( *validator_type )( ::lua_State*, int );
-        typedef decltype( function_ ) function_type;
+        typedef decltype( method_ ) method_type;
         *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_method_params<Args...>;
-        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &method_proxy_nr<Args...>, 1 );
+        *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            decltype( auto ) self = Derived::to( l_, 1 );
+            auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            inoke_method_nr( l_, &self, member, 2, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
+            return 0;
+        }, 1 );
         lua_settable( l_, -3 );
     }
 
     template<typename RetType>
-    static void add_overloaded_method_variant( ::lua_State* l_, RetType( Class::*function_ )( ) ) {
+    static void add_overloaded_method_variant( ::lua_State* l_, RetType( Class::*method_ )( ) ) {
         typedef bool( *validator_type )( ::lua_State*, int );
-        typedef decltype( function_ ) function_type;
+        typedef decltype( method_ ) method_type;
         *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_method_params_np;
-        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &method_proxy_np<RetType>, 1 );
+        *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            decltype( auto ) self = Derived::to( l_, 1 );
+            auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            return ::lua::push( l_, ( self.*member )( ) );
+        }, 1 );
         lua_settable( l_, -3 );
     }
 
-    static void add_overloaded_method_variant( ::lua_State* l_, void( Class::*function_ )( ) ) {
+    static void add_overloaded_method_variant( ::lua_State* l_, void( Class::*method_ )( ) ) {
         typedef bool( *validator_type )( ::lua_State*, int );
-        typedef decltype( function_ ) function_type;
+        typedef decltype( method_ ) method_type;
         *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_method_params_np;
-        *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &method_proxy_nr_np, 1 );
+        *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_method_params_np( l_ ) ) {
+                return 0;
+            }
+            decltype( auto ) self = Derived::to( l_, 1 );
+            auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            ( self.*member )( );
+            return 0;
+        }, 1 );
         lua_settable( l_, -3 );
     }
 
@@ -366,7 +300,14 @@ struct class_trait_base {
         typedef decltype( method_ ) method_type;
         lua_pushstring( l_, name_ );
         *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
-        lua_pushcclosure( l_, &method_proxy<RetType, Args...>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_method_params<Args...>( l_ ) ) {
+                return 0;
+            }
+            decltype(auto) self = Derived::to( l_, 1 );
+            auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            return inoke_method( l_, &self, member, 2, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
+        }, 1 );
         lua_settable( l_, medthod_table_ );
     }
     template<typename... Args>
@@ -374,7 +315,15 @@ struct class_trait_base {
         typedef decltype( method_ ) method_type;
         lua_pushstring( l_, name_ );
         *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
-        lua_pushcclosure( l_, &method_proxy_nr<Args...>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_method_params<Args...>( l_ ) ) {
+                return 0;
+            }
+            decltype(auto) self = Derived::to( l_, 1 );
+            auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            inoke_method_nr( l_, &self, member, 2, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
+            return 0;
+        }, 1 );
         lua_settable( l_, medthod_table_ );
     }
     template<typename RetType>
@@ -382,14 +331,29 @@ struct class_trait_base {
         typedef decltype( method_ ) method_type;
         lua_pushstring( l_, name_ );
         *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
-        lua_pushcclosure( l_, &method_proxy_np<RetType>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_method_params_np( l_ ) ) {
+                return 0;
+            }
+            decltype( auto ) self = Derived::to( l_, 1 );
+            auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            return ::lua::push( l_, ( self.*member )( ) );
+        }, 1 );
         lua_settable( l_, medthod_table_ );
     }
     static void add_method( ::lua_State* l_, const char* name_, int medthod_table_, void( Class::*method_ )( ) ) {
         typedef decltype( method_ ) method_type;
         lua_pushstring( l_, name_ );
         *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
-        lua_pushcclosure( l_, &method_proxy_nr_np, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_method_params_np( l_ ) ) {
+                return 0;
+            }
+            decltype(auto) self = Derived::to( l_, 1 );
+            auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            ( self.*member )( );
+            return 0;
+        }, 1 );
         lua_settable( l_, medthod_table_ );
     }
 
@@ -404,7 +368,9 @@ struct class_trait_base {
         typedef decltype( function_ ) function_type;
         *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_function_params<Args...>;
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &function_proxy<RetType, Args...>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            return invoke_function( l_, *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) ), 1, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
+        }, 1 );
         lua_settable( l_, -3 );
     }
 
@@ -414,7 +380,10 @@ struct class_trait_base {
         typedef decltype( function_ ) function_type;
         *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_function_params<Args...>;
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &function_proxy_nr<Args...>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            invoke_function_nr( l_, *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) ), 1, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
+            return 0;
+        }, 1 );
         lua_settable( l_, -3 );
     }
 
@@ -424,7 +393,10 @@ struct class_trait_base {
         typedef decltype( function_ ) function_type;
         *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_function_params_np;
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &function_proxy_np<RetType>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            auto func = *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            return ::lua::push( l_, func() );
+        }, 1 );
         lua_settable( l_, -3 );
     }
 
@@ -433,7 +405,11 @@ struct class_trait_base {
         typedef decltype( function_ ) function_type;
         *static_cast<validator_type*>( lua_newuserdata( l_, sizeof( validator_type ) ) ) = validate_function_params_np;
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &function_proxy_nr_np, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            auto func = *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            func();
+            return 0;
+        }, 1 );
         lua_settable( l_, -3 );
     }
 
@@ -447,7 +423,12 @@ struct class_trait_base {
         typedef decltype( function_ ) function_type;
         lua_pushstring( l_, name_ );
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &function_proxy<RetType, Args...>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_function_params<Args...>( l_ ) ) {
+                return 0;
+            }
+            return invoke_function( l_, *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) ), 1, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
+        }, 1 );
         lua_settable( l_, medthod_table_ );
     }
 
@@ -456,7 +437,13 @@ struct class_trait_base {
         typedef decltype( function_ ) function_type;
         lua_pushstring( l_, name_ );
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &function_proxy_nr<Args...>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_function_params<Args...>( l_ ) ) {
+                return 0;
+            }
+            invoke_function_nr( l_, *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) ), 1, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
+            return 0;
+        }, 1 );
         lua_settable( l_, medthod_table_ );
     }
 
@@ -465,7 +452,13 @@ struct class_trait_base {
         typedef decltype( function_ ) function_type;
         lua_pushstring( l_, name_ );
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &function_proxy_np<RetType>, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_function_params_np( l_ ) ) {
+                return 0;
+            }
+            auto func = *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            return ::lua::push( l_, func() );
+        }, 1 );
         lua_settable( l_, medthod_table_ );
     }
 
@@ -473,7 +466,14 @@ struct class_trait_base {
         typedef decltype( function_ ) function_type;
         lua_pushstring( l_, name_ );
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
-        lua_pushcclosure( l_, &function_proxy_nr_np, 1 );
+        lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
+            if ( !validate_function_params_np( l_ ) ) {
+                return 0;
+            }
+            auto func = *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
+            func();
+            return 0;
+        }, 1 );
         lua_settable( l_, medthod_table_ );
     }
 
