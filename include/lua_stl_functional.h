@@ -7,10 +7,11 @@ template<typename Ret, typename... Args>
 struct type_trait<std::function<Ret(Args...)>> {
     typedef std::function<Ret( Args... )> value_type;
     static const char* type_name() {
-        static char name[64] = { 0 };
+        // '\0' + len of "std::function[]" + two chars per byte
+        static char name[1 + 15 + sizeof(void*)* 2] = { 0 };
         if ( !name[0] ) {
             // using pointer to this function as a uniqe id
-            sprintf( name, "std::function[%p]", &type_name );
+            sprintf_s( name, "std::function[%p]", &type_name );
         }
         return name;
     }
@@ -78,10 +79,11 @@ template<typename... Args>
 struct type_trait<std::function<void( Args... )>> {
     typedef std::function<void( Args... )> value_type;
     static const char* type_name() {
-        static char name[64] = { 0 };
+        // '\0' + len of "std::function[]" + two chars per byte
+        static char name[1 + 15 + sizeof(void*) * 2] = { 0 };
         if ( !name[0] ) {
             // using pointer to this function as a uniqe id
-            sprintf( name, "std::function[%p]", &type_name );
+            sprintf_s( name, "std::function[%p]", &type_name );
         }
         return name;
     }
@@ -150,10 +152,11 @@ template<typename Ret>
 struct type_trait<std::function<Ret()>> {
     typedef std::function<Ret()> value_type;
     static const char* type_name() {
-        static char name[64] = { 0 };
+        // '\0' + len of "std::function[]" + two chars per byte
+        static char name[1 + 15 + sizeof(void*)* 2] = { 0 };
         if ( !name[0] ) {
             // using pointer to this function as a uniqe id
-            sprintf( name, "std::function[%p]", &type_name );
+            sprintf_s( name, "std::function[%p]", &type_name );
         }
         return name;
     }
@@ -213,10 +216,11 @@ template<>
 struct type_trait<std::function<void()>> {
     typedef std::function<void()> value_type;
     static const char* type_name() {
-        static char name[64] = { 0 };
+        // '\0' + len of "std::function[]" + two chars per byte
+        static char name[1 + 15 + sizeof(void*)* 2] = { 0 };
         if ( !name[0] ) {
             // using pointer to this function as a uniqe id
-            sprintf( name, "std::function[%p]", &type_name );
+            sprintf_s( name, "std::function[%p]", &type_name );
         }
         return name;
     }
