@@ -58,4 +58,19 @@ struct debug {
         return lua_gethookcount( static_cast<Derived*>( this )->get() );
     }
 };
+
+namespace detail {
+inline constexpr unsigned make_debug_mask() {
+    return 0;
+}
+
+template<typename Value, typename... Values>
+inline constexpr unsigned make_debug_mask( Value value_, Values... values_ ) {
+    return ( 1 << value_ ) | make_debug_mask( values_... );
+}
+}
+template<typename... Values>
+inline std::bitset<5> make_debug_mask( Values... values_ ) {
+    return { detail::make_debug_mask( values_... ) };
+}
 }

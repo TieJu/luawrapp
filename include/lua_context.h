@@ -162,19 +162,6 @@ template<typename Derived>
 inline bool operator==( const context_base<Derived>& lhv_, const context_base<Derived>& rhv_ ) {
     return lhv_.get() == rhv_.get();
 }
-
-inline constexpr unsigned make_debug_mask() {
-    return 0;
-}
-
-template<typename Value, typename... Values>
-inline constexpr unsigned make_debug_mask( Value value_, Values... values_ ) {
-    return ( 1 << value_ ) | make_debug_mask( values_... );
-}
-}
-template<typename... Values>
-inline std::bitset<5> make_debug_mask( Values... values_ ) {
-    return { detail::make_debug_mask( values_... ) };
 }
 
 class unique_context
