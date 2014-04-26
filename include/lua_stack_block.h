@@ -3,7 +3,7 @@
 namespace lua {
 template<typename State>
 class stack_block
-    : public stack<stack_block<State>>{
+    : public stack_base<stack_block<State>>{
     State   _state;
     int     _top;
 

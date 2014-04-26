@@ -12,7 +12,7 @@ namespace lua {
 namespace detail {
 template<typename Derived>
 class context_base
-    : public stack<context_base<Derived>>
+    : public stack_base<context_base<Derived>>
     , public garbage_collector<context_base<Derived>>
     , public debug<context_base<Derived>> {
 protected:
@@ -156,6 +156,10 @@ public:
     void reg_type() {
         type_trait<Type>::reg_type( _l );
     }
+
+    debug_state<Derived&> begin_debug() {
+        return { static_cast<Derived&>( *this ) };
+    }
 };
 
 template<typename Derived>
@@ -205,6 +209,10 @@ public:
     void attach( ::lua_State* l_ ) {
         attach_handle( l_ );
     }
+
+    stack<unique_context&> stack() {
+        return {*this};
+    }
 };
 
 class context
@@ -251,6 +259,10 @@ public:
     void attach( ::lua_State* l_ ) {
         close();
         attach_handle( l_ );
+    }
+
+    stack<context> stack() {
+        return {*this};
     }
 };
 
@@ -381,6 +393,10 @@ public:
 
     void attach( ::lua_State* l_ ) {
         attach_handle( l_ );
+    }
+
+    stack<shared_context> stack() {
+        return {*this};
     }
 };
 }

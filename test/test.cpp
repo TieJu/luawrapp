@@ -426,6 +426,49 @@ Test( context, function ) {
     EXPECT_TRUE( exec, "test_func invoked" );
 }
 
+Test( debug, line_break ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+    gctx = &__tctx__;
+
+    bool line_2_found = false;
+    auto dbg = ctx.begin_debug();
+    dbg.add_line_break( 2, [&]( ::lua_State* l_, int line_ ) {
+        line_2_found = true;
+    } );
+
+    //luaL_openlibs( ctx.get() );
+    auto script = "function test_function()\nreturn \"test\"\nend\ntest_function()\n";
+    bool ok = ( 0 == luaL_dostring( ctx.get(), script ) );
+    if ( !ok ) {
+        auto error = ctx.to_string( -1 );
+        if ( error ) {
+            INFO_LOG( "lua error was %s", error );
+        }
+    }
+    EXPECT_TRUE( ok, "function test_function()\nreturn \"test\"\nend\ntest_function()\n" );
+    EXPECT_TRUE( line_2_found, "line two break" );
+
+}
+
+Test( stack, iterator ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+    gctx = &__tctx__;
+
+
+    auto stack = ctx.stack();
+    stack.push( "first" );
+    stack.push( "second" );
+    stack.push( "thrid" );
+    stack.push( "fourth" );
+
+    for ( auto e : stack ) {
+        EXPECT_TRUE( e.is<const char*>(), "var has to bee string" );
+    }
+
+}
+
 void main() {
     do_all_tests();
 }
