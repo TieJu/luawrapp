@@ -25,7 +25,7 @@ extern "C" {
 #include "lua_stack_block.h"
 #include "lua_garbage_collector.h"
 #include "lua_debug.h"
-#include "lua_debug_state.h"
+#include "lua_debug_context.h"
 #include "lua_context.h"
 #include "lua_class_trait_base.h"
 

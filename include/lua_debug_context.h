@@ -5,7 +5,7 @@
 
 namespace lua {
 template<typename Context>
-struct debug_state {
+struct debug_context {
     Context _ctx;
 
     typedef std::function<void( ::lua_State*, int )> debug_clb;
@@ -81,25 +81,25 @@ struct debug_state {
     }
 
 public:
-    debug_state( Context ctx_ ) : _ctx { std::forward<Context>( ctx_ ) } { add_ref(); }
-    ~debug_state() { sub_ref(); }
+    debug_context( Context ctx_ ) : _ctx { std::forward<Context>( ctx_ ) } { add_ref(); }
+    ~debug_context() { sub_ref(); }
 
-    debug_state( const debug_state & other_ )
+    debug_context( const debug_context & other_ )
         : _ctx { other_._ctx } {
         add_ref();
     }
-    debug_state& operator=( const debug_state & other_ ) {
+    debug_context& operator=( const debug_context & other_ ) {
         sub_ref();
         _ctx = other_._ctx;
         add_ref();
         return *this;
     }
 
-    debug_state( debug_state&& other_ )
+    debug_context( debug_context&& other_ )
         : _ctx { std::move( other_._ctx ) } {
     }
 
-    debug_state& operator=( debug_state&& other_ ) {
+    debug_context& operator=( debug_context&& other_ ) {
         sub_ref();
         _ctx = std::move( other_._ctx );
         return *this;

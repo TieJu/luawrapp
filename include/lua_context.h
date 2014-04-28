@@ -157,7 +157,7 @@ public:
         type_trait<Type>::reg_type( _l );
     }
 
-    debug_state<Derived&> begin_debug() {
+    debug_context<Derived&> begin_debug() {
         return { static_cast<Derived&>( *this ) };
     }
 };

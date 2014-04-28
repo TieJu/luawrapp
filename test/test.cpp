@@ -464,7 +464,7 @@ Test( stack, iterator ) {
     stack.push( "fourth" );
 
     for ( auto e : stack ) {
-        EXPECT_TRUE( e.is<const char*>(), "var has to bee string" );
+        EXPECT_TRUE( e.is<const char*>(), "var has to be string" );
     }
 
 }

@@ -26,6 +26,12 @@ public:
     }
     ~var() = default;
 
+    var( const var & ) = default;
+    var& operator=( const var& ) = default;
+
+    var( var&& ) = default;
+    var& operator=( var&& ) = default;
+
     State& state() const {
         return _state;
     }
@@ -36,6 +42,11 @@ public:
 
     IndexRef& index() const {
         return _index;
+    }
+
+    template<typename Type>
+    bool is() const {
+        return _table.is_at<Type>( _state, _index );
     }
 
     template<typename Type>
@@ -91,6 +102,11 @@ struct var_on_stack_as_table {
         return state_.to<Type>( push_at( state_, index_ ) );
     }
 
+    template<typename Type, typename State, typename Index>
+    bool is_at( State& state_, Index& index_ ) {
+        return state_.is<Type>( push_at( state_, index_ ) );
+    }
+
     template<typename State, typename Index>
     int push_at( State& state_, Index& index_ ) {
         int at = _table.push_at( state_, _index );
@@ -120,6 +136,11 @@ struct raw_static_index_table {
     template<typename Type, typename State, typename Index>
     Type get_at( State& state_, Index& index_ ) {
         return state_.to<Type>( push_at( state_, index_ ) );
+    }
+
+    template<typename Type, typename State, typename Index>
+    bool is_at( State& state_, Index& index_ ) {
+        return state_.is<Type>( push_at( state_, index_ ) );
     }
 
     template<typename State, typename Index>
@@ -155,6 +176,11 @@ struct stack_index_table {
     template<typename Type, typename State>
     Type get_at( State& state_, stack_index index_ ) {
         return state_.to<Type>( index_._value );
+    }
+
+    template<typename Type, typename State>
+    bool is_at( State& state_, stack_index index_ ) {
+        return state_.is<Type>( index_._value );
     }
 
     template<typename State>
@@ -250,14 +276,20 @@ public:
 };
 
 
+template<typename Context>
+using shared_var = var<Context, raw_static_index_table<LUA_REGISTRYINDEX>, self_pointer_index>;
+
+template<typename Context>
+using stack_var = var<Context, stack_index_table, stack_index>;
 
 template<typename State, typename TableRef, typename IndexRef>
-inline var<std::decay_t<State>, raw_static_index_table<LUA_REGISTRYINDEX>, self_pointer_index> make_shared( const var<State, TableRef, IndexRef>& var_ ) {
-    return var<std::decay_t<State>, raw_static_index_table<LUA_REGISTRYINDEX>, self_pointer_index> { var_.state(), {}, {}, var_.push(), true };
+inline shared_var<std::decay_t<State>> make_shared( const var<State, TableRef, IndexRef>& var_ ) {
+    return shared_var<std::decay_t<State>> { var_.state(), {}, {}, var_.push(), true };
 }
 
 template<typename State, typename TableRef, typename IndexRef, typename TableRef2, typename IndexRef2, typename State2>
 inline var<State, var_on_stack_as_table< TableRef, IndexRef>, var_as_index<TableRef2, IndexRef2>> index_table( const var<State, TableRef, IndexRef>& table_, const var<State2, TableRef2, IndexRef2>& index_ ) {
     return var<State, var_on_stack_as_table<TableRef, IndexRef>, var_as_index<TableRef2, IndexRef2>> {table_.state(), { table_.table(), table_.index() }, { index_.table(), index_.index() }};
 }
+
 }
