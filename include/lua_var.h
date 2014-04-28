@@ -26,11 +26,35 @@ public:
     }
     ~var() = default;
 
-    var( const var & ) = default;
-    var& operator=( const var& ) = default;
+    var( const var & other_ ) : _state { other_._state } {
+        int index = other_.push();
+        _table = other_._table;
+        _table.set_at_from_stack( _state, _index, index );
+        _state.remove( index );
+    }
+    var& operator=( const var& other_ ) {
+        _state = other_._state;
+        int index = other_.push();
+        _table = other_._table;
+        _table.set_at_from_stack( _state, _index, index );
+        _state.remove( index );
+        return *this;
+    }
 
-    var( var&& ) = default;
-    var& operator=( var&& ) = default;
+    var( var&& other_ ) : _state { other_._state } {
+        int index = other_.push();
+        _table = other_._table;
+        _table.set_at_from_stack( _state, _index, index );
+        _state.remove( index );
+    }
+    var& operator=( var&& other_ ) {
+        _state = other_._state;
+        int index = other_.push();
+        _table = other_._table;
+        _table.set_at_from_stack( _state, _index, index );
+        _state.remove( index );
+        return *this;
+    }
 
     State& state() const {
         return _state;

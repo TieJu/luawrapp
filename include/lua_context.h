@@ -213,6 +213,10 @@ public:
     stack<unique_context&> stack() {
         return {*this};
     }
+
+    shared_var<unique_context&> share( int index_ ) {
+        return { *this, {}, {}, this->abs_stack_index( index_ ), false };
+    }
 };
 
 class context
@@ -263,6 +267,10 @@ public:
 
     stack<context> stack() {
         return {*this};
+    }
+
+    shared_var<context> share( int index_ ) {
+        return { *this, {}, {}, this->abs_stack_index( index_ ), false };
     }
 };
 
@@ -397,6 +405,10 @@ public:
 
     stack<shared_context> stack() {
         return {*this};
+    }
+
+    shared_var<shared_context> share( int index_ ) {
+        return { *this, {}, {}, this->abs_stack_index( index_ ), false };
     }
 };
 }

@@ -323,7 +323,7 @@ struct stack_base {
 
     int abs_stack_index( int index_ ) {
         return index_ > 0 ? index_
-            : index_ <= LUA_REGISTRYINDEX ? _idx
+            : index_ <= LUA_REGISTRYINDEX ? index_
             : get_top() + 1 + index_;
     }
 };

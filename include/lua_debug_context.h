@@ -4,6 +4,41 @@
 #include <functional>
 
 namespace lua {
+    inline void dump_stack_entry( ::lua_State* l_, int index_ );
+inline void dump_table( ::lua_State* l_, int index_ ) {
+    printf( "[%d] table\n", index_ );
+
+    lua_pushnil( l_ );
+    while ( lua_next( l_, index_ ) ) {
+        puts( "{\n" );
+        dump_stack_entry( l_, -1 );
+        dump_stack_entry( l_, -2 );
+        puts( "}\n" );
+        lua_pop( l_, 1 );
+    }
+    lua_pop( l_, 1 );
+}
+inline void dump_stack_entry( ::lua_State* l_, int index_ ) {
+    switch ( lua_type( l_, index_ ) ) {
+    case LUA_TNONE: printf( "[%d] <none>\n", index_ ); break;
+    case LUA_TNIL: printf( "[%d] nil\n", index_ ); break;
+    case LUA_TBOOLEAN: printf( "[%d] boolean = %s\n", index_, lua_toboolean( l_, index_ ) ? "true" : "false" ); break;
+    case LUA_TLIGHTUSERDATA: printf( "[%d] light user data = %p\n", index_, lua_topointer( l_, index_ ) ); break;
+    case LUA_TNUMBER: printf( "[%d] number = %d\n", index_, lua_tonumber( l_, index_ ) ); break;
+    case LUA_TSTRING: printf( "[%d] string = %s\n", index_, lua_tostring( l_, index_ ) ); break;
+    case LUA_TTABLE: dump_table( l_, index_ ); break;
+    case LUA_TFUNCTION: printf( "[%d] function = %p\n", index_, lua_topointer( l_, index_ ) ); break;
+    case LUA_TUSERDATA: printf( "[%d] user data = %p\n", index_, lua_topointer( l_, index_ ) ); break;
+    case LUA_TTHREAD: printf( "[%d] thread = %p\n", index_, lua_topointer( l_, index_ ) ); break;
+    }
+}
+
+inline void dump_stack( ::lua_State *l_ ) {
+    auto top = lua_gettop( l_ );
+    for ( int i = 1; i <= top; ++i ) {
+        dump_stack_entry( l_, i );
+    }
+}
 template<typename Context>
 struct debug_context {
     Context _ctx;

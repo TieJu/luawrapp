@@ -466,7 +466,20 @@ Test( stack, iterator ) {
     for ( auto e : stack ) {
         EXPECT_TRUE( e.is<const char*>(), "var has to be string" );
     }
+}
 
+Test( stack, shared ) {
+    lua::unique_context ctx;
+    ctx.open( {} );
+    gctx = &__tctx__;
+
+    ctx.push( "string" );
+    auto shared = ctx.share( ctx.get_top() );
+    auto copy_of = shared;
+    shared.push();
+    copy_of.push();
+    //lua::dump_stack( ctx.get() );
+    EXPECT_TRUE( ctx.is_string( -1 ) && ctx.is_string( -2 ) && ctx.is_string( -3 ), "var should be a string" );
 }
 
 void main() {
