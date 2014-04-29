@@ -4,7 +4,7 @@
 
 namespace lua {
 struct light_user_data {
-    void* _ptr;
+    const void* _ptr;
 };
 
 template<>
@@ -18,7 +18,7 @@ struct type_trait<light_user_data> {
     }
 
     static void push( ::lua_State* l_, light_user_data value_ ) {
-        lua_pushlightuserdata( l_, value_._ptr );
+        lua_pushlightuserdata( l_, const_cast<void*>( value_._ptr ) );
     }
 };
 }

@@ -8,6 +8,7 @@ extern "C" {
 
 #include "tools_v_seq.h"
 
+#include "lua_table.h"
 #include "lua_type_traits.h"
 #include "lua_light_user_data.h"
 #include "lua_function.h"
@@ -18,6 +19,8 @@ extern "C" {
 #include "lua_to.h"
 #include "lua_push.h"
 #include "lua_var.h"
+#include "lua_shared_var.h"
+#include "lua_table_iterator.h"
 #include "lua_stack_base.h"
 #include "lua_stack_iterator.h"
 #include "lua_stack.h"

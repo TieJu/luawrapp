@@ -163,9 +163,7 @@ Test( context, test_function_wrap ) {
     ctx.open( {} );
 
     gctx = &__tctx__;
-    ctx.push( "print" );
-    ctx.push( test_print );
-    ctx.set_table( LUA_GLOBALSINDEX );
+    ctx.set_table_entry( LUA_GLOBALSINDEX, "print", test_print );
     EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print" );
 }
 
@@ -363,7 +361,7 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
         auto methods = tables._method_table;
         auto geter = tables._geter_table;
         auto seter = tables._seter_table;
-
+        
         add_method( l_, "print", methods, &register_class_test_class::print );
         add_method( l_, "set_name", methods, &register_class_test_class::set_name );
         add_method( l_, "get_name", methods, &register_class_test_class::get_name );
@@ -378,7 +376,7 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
         add_member( l_, "_name", geter, seter, &register_class_test_class::_name );
 
         add_constant( l_, "default", methods, "default" );
-
+        
         end_class_reg( l_, tables );
     }
 };
@@ -391,8 +389,32 @@ Test( context, register_class ) {
     ctx.open( {} );
     gctx = &__tctx__;
 
+    luaL_openlibs( ctx.get() );
+
     ctx.reg_type<register_class_test_class>();
-    auto test_code = "function test:print_test() self:print() end\nlocal t = test(\"first\")\nt:print_test()\nt:set_name(\"second\")\nt:print()\nt:set_name(t:get_name()..5)\nt:print()\nt:set_name2(\"this\",5,\"is ok\")\nt:print()\nt:set(5)\nt:print()\nt:set(\"test\")\nt:print()\nt.my_name = \"my name\"\nt:print()\nt.my_name = t.my_name .. 5\nt:print()\nt._name = \"_name\"\nt:print()\n t._name = test.default\nt:print()\n";
+    auto test_code = ""
+        "function test:print_test() self:print() end\n"
+        "local t = test(\"test\")\n"
+        "t:print_test()\n"
+        "t:set_name(\"second\")\n"
+        "t:print()\n"
+        "t:set_name(t:get_name()..5)\n"
+        "t:print()\n"
+        "t:set_name2(\"this\",5,\"is ok\")\n"
+        "t:print()\n"
+        "t:set(5)\n"
+        "t:print()\n"
+        "t:set(\"test\")\n"
+        "t:print()\n"
+        "t.my_name = \"my name\"\n"
+        "t:print()\n"
+        "t.my_name = t.my_name .. 5\n"
+        "t:print()\n"
+        "t._name = \"_name\"\n"
+        "t:print()\n"
+        "t._name = test.default\n"
+        "t:print()\n";
+        ;
     bool ok = ( 0 == luaL_dostring( ctx.get(), test_code ) );
     if ( !ok ) {
         auto error = ctx.to_string( -1 );
@@ -400,7 +422,7 @@ Test( context, register_class ) {
             INFO_LOG( "lua error was %s", error );
         }
     }
-    EXPECT_TRUE( ok, "function test:print_test() self:print() end\nlocal t = test(\"first\")\nt:print_test()\nt:set_name(\"second\")\nt:print()\nt:set_name(t:get_name()..5)\nt:print()\nt:set_name2(\"this\",5,\"is ok\")\nt:print()\nt:set(5)\nt:print()\nt:set(\"test\")\nt:print()\nt.my_name = \"my name\"\nt:print()\nt.my_name = t.my_name .. 5\nt:print()\nt._name = \"_name\"\nt:print()\n t._name = test.default\nt:print()\n" );
+    EXPECT_TRUE( ok, "test code" );
 }
 
 Test( context, function ) {
@@ -478,8 +500,63 @@ Test( stack, shared ) {
     auto copy_of = shared;
     shared.push();
     copy_of.push();
-    //lua::dump_stack( ctx.get() );
     EXPECT_TRUE( ctx.is_string( -1 ) && ctx.is_string( -2 ) && ctx.is_string( -3 ), "var should be a string" );
+}
+
+Test( lua, core ) {
+    lua::shared_context ctx;
+    ctx.open( {} );
+    gctx = &__tctx__;
+
+    lua_pushliteral( ctx.get(), "test" );
+    lua_newtable( ctx.get() );
+    auto table = lua_gettop( ctx.get() );
+
+    lua_pushnumber( ctx.get(), 5 );
+    lua_pushliteral( ctx.get(), "fife" );
+    lua_settable( ctx.get(), table );
+
+    ctx.set_table( LUA_GLOBALSINDEX );
+
+    luaL_openlibs( ctx.get() );
+    auto code = "print(test[5])";
+    luaL_dostring( ctx.get(), code );
+
+    lua_getglobal( ctx.get(), "test" );
+    table = lua_gettop( ctx.get() );
+    lua_pushnil( ctx.get() );
+    while ( lua_next( ctx.get(), table ) ) {
+        lua::dump_stack_entry( ctx.get(), -2 );
+        lua::dump_stack_entry( ctx.get(), -1 );
+        lua_pop( ctx.get(), 1 );
+    }
+}
+
+Test( table, iterator ) {
+    lua::shared_context ctx;
+    ctx.open( {} );
+    gctx = &__tctx__;
+
+    ctx.new_table();
+    auto table = ctx.get_top();
+
+    ctx.set_table_entry( table, 1, "first" );
+
+    ctx.set_table_entry( table, 2, "second" );
+
+    ctx.set_table_entry( table, 3, "third" );
+
+    lua::table_iterator<lua::shared_context> at { ctx, table };
+    ctx.set_top( 0 );
+
+    for ( ; at; ++at ) {
+        auto kv = *at;
+
+        kv.first.push();
+        kv.second.push();
+        lua::dump_stack( ctx.get() );
+        ctx.pop( 2 );
+    }
 }
 
 void main() {

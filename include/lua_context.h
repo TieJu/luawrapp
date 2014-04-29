@@ -128,37 +128,20 @@ public:
         lua_setallocf( _l, func_, user_data_ );
     }
 
-    var<Derived&, stack_index_table, stack_index> get_at_stack( int index_ ) {
-        return var<Derived&, stack_index_table, stack_index>{*static_cast<Derived*>( this ), {}, { index_ } };
-    }
-
-    template<typename Type>
-    var<Derived&, stack_index_table, stack_index> push_to_stack( Type value_ ) {
-        push( std::forward<Type>( value_ ) );
-        return get_at_stack( get_top() );
-    }
-
-    template<typename Type>
-    var<Derived&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> get_global_var( Type value_ ) {
-        auto index = push_to_stack( value_ );
-        return var<Derived&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> {*static_cast<Derived*>( this ), {}, { index.table(), index.index() } };
-    }
-
-    stack_block<Derived&> mark_stack() {
-        return { static_cast<Derived&>( *this ) };
-    }
-
-    stack_block<Derived&> begin_stack_block() {
-        return { static_cast<Derived&>( *this ) };
-    }
-
     template<typename Type>
     void reg_type() {
         type_trait<Type>::reg_type( _l );
     }
+    
+    template<typename Key, typename Value>
+    inline void set_table_entry( int table_id_, Key key_, Value value_ ) {
+        ::lua::set_table( get(), table_id_, std::forward<Key>( key_ ), std::forward<Value>( value_ ) );
+    }
 
-    debug_context<Derived&> begin_debug() {
-        return { static_cast<Derived&>( *this ) };
+    template<typename Key>
+    inline int get_table_entry( int table_id_, Key key_ ) {
+        ::lua::get_table( get(), table_id_, std::forward<Key>( key_ ) );
+        return get_top();
     }
 };
 
@@ -215,7 +198,35 @@ public:
     }
 
     shared_var<unique_context&> share( int index_ ) {
-        return { *this, {}, {}, this->abs_stack_index( index_ ), false };
+        return { *this, this->abs_stack_index( index_ ) };
+    }
+
+    var<unique_context&, stack_index_table, stack_index> get_at_stack( int index_ ) {
+        return var<unique_context&, stack_index_table, stack_index>{*( this ), {}, { index_ } };
+    }
+
+    template<typename Type>
+    var<unique_context&, stack_index_table, stack_index> push_to_stack( Type value_ ) {
+        push( std::forward<Type>( value_ ) );
+        return get_at_stack( get_top() );
+    }
+
+    template<typename Type>
+    var<unique_context&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> get_global_var( Type value_ ) {
+        auto index = push_to_stack( value_ );
+        return var<unique_context&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> {*( this ), {}, { index.table(), index.index() } };
+    }
+
+    stack_block<unique_context&> mark_stack() {
+        return { ( *this ) };
+    }
+
+    stack_block<unique_context&> begin_stack_block() {
+        return { ( *this ) };
+    }
+
+    debug_context<unique_context&> begin_debug() {
+        return { ( *this ) };
     }
 };
 
@@ -270,7 +281,35 @@ public:
     }
 
     shared_var<context> share( int index_ ) {
-        return { *this, {}, {}, this->abs_stack_index( index_ ), false };
+        return { *this, this->abs_stack_index( index_ ) };
+    }
+
+    var<context, stack_index_table, stack_index> get_at_stack( int index_ ) {
+        return var<context, stack_index_table, stack_index>{*( this ), {}, { index_ } };
+    }
+
+    template<typename Type>
+    var<context, stack_index_table, stack_index> push_to_stack( Type value_ ) {
+        push( std::forward<Type>( value_ ) );
+        return get_at_stack( get_top() );
+    }
+
+    template<typename Type>
+    var<context, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> get_global_var( Type value_ ) {
+        auto index = push_to_stack( value_ );
+        return var<context, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> {*( this ), {}, { index.table(), index.index() } };
+    }
+
+    stack_block<context> mark_stack() {
+        return { ( *this ) };
+    }
+
+    stack_block<context> begin_stack_block() {
+        return { ( *this ) };
+    }
+
+    debug_context<context> begin_debug() {
+        return { ( *this ) };
     }
 };
 
@@ -408,7 +447,35 @@ public:
     }
 
     shared_var<shared_context> share( int index_ ) {
-        return { *this, {}, {}, this->abs_stack_index( index_ ), false };
+        return { *this, this->abs_stack_index( index_ ) };
+    }
+
+    var<shared_context, stack_index_table, stack_index> get_at_stack( int index_ ) {
+        return var<shared_context, stack_index_table, stack_index>{*( this ), {}, { index_ } };
+    }
+
+    template<typename Type>
+    var<shared_context, stack_index_table, stack_index> push_to_stack( Type value_ ) {
+        push( std::forward<Type>( value_ ) );
+        return get_at_stack( get_top() );
+    }
+
+    template<typename Type>
+    var<context, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> get_global_var( Type value_ ) {
+        auto index = push_to_stack( value_ );
+        return var<shared_context, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> {*( this ), {}, { index.table(), index.index() } };
+    }
+
+    stack_block<shared_context> mark_stack() {
+        return { ( *this ) };
+    }
+
+    stack_block<shared_context> begin_stack_block() {
+        return { ( *this ) };
+    }
+
+    debug_context<shared_context> begin_debug() {
+        return { ( *this ) };
     }
 };
 }

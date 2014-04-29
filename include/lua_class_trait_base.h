@@ -39,27 +39,27 @@ struct class_trait_base {
         lua_pushvalue( l_, methods );
         lua_settable( l_, LUA_GLOBALSINDEX );
         // _G[<name>] = methods
-
+        
         lua_pushliteral( l_, "__metatable" );
         lua_pushvalue( l_, methods );
         lua_settable( l_, metatable );  // hide metatable from Lua getmetatable()
         // metatable.__metatable = methods
-
+        
         lua_pushliteral( l_, "__index" );
         lua_pushvalue( l_, methods );
         lua_settable( l_, metatable );
         // metatable.__index = methods
-
+        
         lua_pushliteral( l_, "__tostring" );
         lua_pushcfunction( l_, Derived::on_to_string );
         lua_settable( l_, metatable );
         // metatable.__tostring = <derived to string>
-
+        
         lua_pushliteral( l_, "__gc" );
         lua_pushcfunction( l_, Derived::on_gc );
         lua_settable( l_, metatable );
         // metatable.__gc = <derived gc>
-
+        
         lua_newtable( l_ );                // mt for method table
         int mt = lua_gettop( l_ );
         lua_pushliteral( l_, "__call" );
@@ -146,11 +146,7 @@ struct class_trait_base {
             lua_pop( l_, 1 );
         }
 
-        lua_remove( l_, tables_._meta_table );
-        lua_remove( l_, tables_._method_table );
-        lua_remove( l_, tables_._geter_table );
-        lua_remove( l_, tables_._seter_table );
-        lua_remove( l_, tables_._method_meta_table );
+        lua_pop( l_, 5 );
     }
 
     template<typename RetType, typename... Args, int... Seq>

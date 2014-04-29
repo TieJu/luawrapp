@@ -10,6 +10,7 @@
 #include "lua_to.h"
 
 namespace lua {
+template<typename State> class table_iterator;
 template<typename State, typename TableRef, typename IndexRef>
 class var {
     mutable State       _state;
@@ -17,6 +18,7 @@ class var {
     mutable IndexRef    _index;
 
 public:
+    var() = default;
     var( State state_, TableRef table_, IndexRef index_ ) : _state { state_ }, _table { table_ }, _index { index_ } {}
     var( State state_, TableRef table_, IndexRef index_, int init_from_, bool remove_ ) : _state { state_ }, _table { table_ }, _index { index_ } {
         _table.set_at_from_stack( _state, _index, init_from_ );
@@ -96,6 +98,14 @@ public:
 
     int push() const {
         return _table.push_at( _state, _index );
+    }
+
+    table_iterator<State> begin() {
+        return { _state, push() };
+    }
+
+    void set_from_stack( int index_ ) {
+        _table.set_at_from_stack( _state, _index, index_ );
     }
 };
 
@@ -299,17 +309,8 @@ public:
     }
 };
 
-
-template<typename Context>
-using shared_var = var<Context, raw_static_index_table<LUA_REGISTRYINDEX>, self_pointer_index>;
-
 template<typename Context>
 using stack_var = var<Context, stack_index_table, stack_index>;
-
-template<typename State, typename TableRef, typename IndexRef>
-inline shared_var<std::decay_t<State>> make_shared( const var<State, TableRef, IndexRef>& var_ ) {
-    return shared_var<std::decay_t<State>> { var_.state(), {}, {}, var_.push(), true };
-}
 
 template<typename State, typename TableRef, typename IndexRef, typename TableRef2, typename IndexRef2, typename State2>
 inline var<State, var_on_stack_as_table< TableRef, IndexRef>, var_as_index<TableRef2, IndexRef2>> index_table( const var<State, TableRef, IndexRef>& table_, const var<State2, TableRef2, IndexRef2>& index_ ) {
