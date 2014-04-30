@@ -197,14 +197,6 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    stack_block<unique_context&> mark_stack() {
-        return { ( *this ) };
-    }
-
-    stack_block<unique_context&> begin_stack_block() {
-        return { ( *this ) };
-    }
-
     debug_context<unique_context&> begin_debug() {
         return { ( *this ) };
     }
@@ -212,6 +204,10 @@ public:
     template<typename KeyType>
     global_var<unique_context&> get_global_var( KeyType key_ ) {
         return { *this, std::forward<KeyType>( key_ ) };
+    }
+
+    stack_var<unique_context&> var_at( int index_ ) {
+        return { *this, index_ };
     }
 };
 
@@ -269,14 +265,6 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    stack_block<context> mark_stack() {
-        return { ( *this ) };
-    }
-
-    stack_block<context> begin_stack_block() {
-        return { ( *this ) };
-    }
-
     debug_context<context> begin_debug() {
         return { ( *this ) };
     }
@@ -284,6 +272,10 @@ public:
     template<typename KeyType>
     global_var<context> get_global_var( KeyType key_ ) {
         return { *this, std::forward<KeyType>( key_ ) };
+    }
+
+    stack_var<context> var_at( int index_ ) {
+        return { *this, index_ };
     }
 };
 
@@ -424,14 +416,6 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    stack_block<shared_context> mark_stack() {
-        return { ( *this ) };
-    }
-
-    stack_block<shared_context> begin_stack_block() {
-        return { ( *this ) };
-    }
-
     debug_context<shared_context> begin_debug() {
         return { ( *this ) };
     }
@@ -439,6 +423,10 @@ public:
     template<typename KeyType>
     global_var<shared_context> get_global_var( KeyType key_ ) {
         return { *this, std::forward<KeyType>( key_ ) };
+    }
+
+    stack_var<shared_context> var_at( int index_ ) {
+        return { *this, index_ };
     }
 };
 }

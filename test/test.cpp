@@ -172,7 +172,7 @@ Test( context, var_wrapper ) {
     ctx.open( {} );
 
     gctx = &__tctx__;
-    auto marker = ctx.mark_stack();
+    auto marker = ctx.stack();
     auto global = ctx.get_global_var( "print" );
     global.set( test_print );
     EXPECT_TRUE( 0 == luaL_dostring( ctx.get(), "print(\"test\", 8, 9)" ), "invokation of test_print" );
@@ -184,13 +184,13 @@ Test( context, call_test ) {
 
     gctx = &__tctx__;
     {
-        auto marker = ctx.mark_stack();
+        auto marker = ctx.stack();
         auto global = ctx.get_global_var( "print" );
         global.set( test_print );
     }
 
     {
-        auto marker = ctx.mark_stack(); 
+        auto marker = ctx.stack(); 
         auto global = ctx.get_global_var( "print" );
         int pos = global.push();
         lua::call( ctx.get(), "test", 8, 9 );
@@ -203,7 +203,7 @@ Test( context, test_stack_obj ) {
 
     gctx = &__tctx__;
     {
-        auto stack = ctx.begin_stack_block();
+        auto stack = ctx.stack();
         stack.push( "print" );
         stack.push( test_print );
         stack.set_table( LUA_GLOBALSINDEX );
@@ -508,9 +508,7 @@ Test( table, iterator ) {
     auto table = ctx.get_top();
 
     ctx.set_table_entry( table, 1, "first" );
-
     ctx.set_table_entry( table, 2, "second" );
-
     ctx.set_table_entry( table, 3, "third" );
 
     lua::table_iterator<lua::shared_context> at { ctx, table };
