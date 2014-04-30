@@ -38,7 +38,7 @@ public:
     }
 
     stack_var<Context> operator*( ) {
-        return { { _ctx }, {}, { _pos } };
+        return { _ctx, _pos };
     }
 
     inline bool operator==( const stack_iterator& rhv_ ) const {

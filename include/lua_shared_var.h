@@ -37,7 +37,7 @@ public:
     shared_var& operator=( const shared_var& other_ ) {
         _ctx = other_._ctx;
         copy_from( other_ );
-        return this;
+        return *this;
     }
 
     shared_var( shared_var&& other_ ) : _ctx { other_._ctx } {
@@ -47,11 +47,14 @@ public:
     shared_var& operator=( shared_var&& other_ ) {
         _ctx = other_._ctx;
         copy_from( other_ );
-        return this;
+        return *this;
     }
 
-    void push() {
+    Context& context() { return _ctx; }
+
+    int push() {
         _ctx.get_table_entry( LUA_REGISTRYINDEX, id() );
+        return _ctx.get_top();
     }
 
     template<typename Type>

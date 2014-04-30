@@ -4,10 +4,6 @@
 #include <memory>
 #include <utility>
 
-#include "lua_push.h"
-#include "lua_to.h"
-#include "lua_var.h"
-
 namespace lua {
 namespace detail {
 template<typename Derived>
@@ -201,22 +197,6 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    var<unique_context&, stack_index_table, stack_index> get_at_stack( int index_ ) {
-        return var<unique_context&, stack_index_table, stack_index>{*( this ), {}, { index_ } };
-    }
-
-    template<typename Type>
-    var<unique_context&, stack_index_table, stack_index> push_to_stack( Type value_ ) {
-        push( std::forward<Type>( value_ ) );
-        return get_at_stack( get_top() );
-    }
-
-    template<typename Type>
-    var<unique_context&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> get_global_var( Type value_ ) {
-        auto index = push_to_stack( value_ );
-        return var<unique_context&, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> {*( this ), {}, { index.table(), index.index() } };
-    }
-
     stack_block<unique_context&> mark_stack() {
         return { ( *this ) };
     }
@@ -227,6 +207,11 @@ public:
 
     debug_context<unique_context&> begin_debug() {
         return { ( *this ) };
+    }
+    
+    template<typename KeyType>
+    global_var<unique_context&> get_global_var( KeyType key_ ) {
+        return { *this, std::forward<KeyType>( key_ ) };
     }
 };
 
@@ -284,22 +269,6 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    var<context, stack_index_table, stack_index> get_at_stack( int index_ ) {
-        return var<context, stack_index_table, stack_index>{*( this ), {}, { index_ } };
-    }
-
-    template<typename Type>
-    var<context, stack_index_table, stack_index> push_to_stack( Type value_ ) {
-        push( std::forward<Type>( value_ ) );
-        return get_at_stack( get_top() );
-    }
-
-    template<typename Type>
-    var<context, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> get_global_var( Type value_ ) {
-        auto index = push_to_stack( value_ );
-        return var<context, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> {*( this ), {}, { index.table(), index.index() } };
-    }
-
     stack_block<context> mark_stack() {
         return { ( *this ) };
     }
@@ -310,6 +279,11 @@ public:
 
     debug_context<context> begin_debug() {
         return { ( *this ) };
+    }
+
+    template<typename KeyType>
+    global_var<context> get_global_var( KeyType key_ ) {
+        return { *this, std::forward<KeyType>( key_ ) };
     }
 };
 
@@ -450,22 +424,6 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    var<shared_context, stack_index_table, stack_index> get_at_stack( int index_ ) {
-        return var<shared_context, stack_index_table, stack_index>{*( this ), {}, { index_ } };
-    }
-
-    template<typename Type>
-    var<shared_context, stack_index_table, stack_index> push_to_stack( Type value_ ) {
-        push( std::forward<Type>( value_ ) );
-        return get_at_stack( get_top() );
-    }
-
-    template<typename Type>
-    var<context, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> get_global_var( Type value_ ) {
-        auto index = push_to_stack( value_ );
-        return var<shared_context, raw_static_index_table<LUA_GLOBALSINDEX>, var_as_index<stack_index_table, stack_index>> {*( this ), {}, { index.table(), index.index() } };
-    }
-
     stack_block<shared_context> mark_stack() {
         return { ( *this ) };
     }
@@ -476,6 +434,11 @@ public:
 
     debug_context<shared_context> begin_debug() {
         return { ( *this ) };
+    }
+
+    template<typename KeyType>
+    global_var<shared_context> get_global_var( KeyType key_ ) {
+        return { *this, std::forward<KeyType>( key_ ) };
     }
 };
 }

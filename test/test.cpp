@@ -168,7 +168,7 @@ Test( context, test_function_wrap ) {
 }
 
 Test( context, var_wrapper ) {
-    lua::unique_context ctx;
+    lua::shared_context ctx;
     ctx.open( {} );
 
     gctx = &__tctx__;
@@ -179,7 +179,7 @@ Test( context, var_wrapper ) {
 }
 
 Test( context, call_test ) {
-    lua::unique_context ctx;
+    lua::shared_context ctx;
     ctx.open( {} );
 
     gctx = &__tctx__;
@@ -503,35 +503,6 @@ Test( stack, shared ) {
     EXPECT_TRUE( ctx.is_string( -1 ) && ctx.is_string( -2 ) && ctx.is_string( -3 ), "var should be a string" );
 }
 
-Test( lua, core ) {
-    lua::shared_context ctx;
-    ctx.open( {} );
-    gctx = &__tctx__;
-
-    lua_pushliteral( ctx.get(), "test" );
-    lua_newtable( ctx.get() );
-    auto table = lua_gettop( ctx.get() );
-
-    lua_pushnumber( ctx.get(), 5 );
-    lua_pushliteral( ctx.get(), "fife" );
-    lua_settable( ctx.get(), table );
-
-    ctx.set_table( LUA_GLOBALSINDEX );
-
-    luaL_openlibs( ctx.get() );
-    auto code = "print(test[5])";
-    luaL_dostring( ctx.get(), code );
-
-    lua_getglobal( ctx.get(), "test" );
-    table = lua_gettop( ctx.get() );
-    lua_pushnil( ctx.get() );
-    while ( lua_next( ctx.get(), table ) ) {
-        lua::dump_stack_entry( ctx.get(), -2 );
-        lua::dump_stack_entry( ctx.get(), -1 );
-        lua_pop( ctx.get(), 1 );
-    }
-}
-
 Test( table, iterator ) {
     lua::shared_context ctx;
     ctx.open( {} );
@@ -554,7 +525,7 @@ Test( table, iterator ) {
 
         kv.first.push();
         kv.second.push();
-        lua::dump_stack( ctx.get() );
+        EXPECT_TRUE( ctx.type( -2 ) == LUA_TNUMBER && ctx.type( -1 ) == LUA_TSTRING, "expected number / string pair" );
         ctx.pop( 2 );
     }
 }
