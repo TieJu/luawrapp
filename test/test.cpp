@@ -450,7 +450,7 @@ Test( debug, line_break ) {
     gctx = &__tctx__;
 
     bool line_2_found = false;
-    auto dbg = ctx.begin_debug();
+    auto dbg = ctx.debug();
     dbg.add_line_break( 2, [&]( ::lua_State* l_, int line_ ) {
         line_2_found = true;
     } );

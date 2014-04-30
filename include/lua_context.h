@@ -197,7 +197,7 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    debug_context<unique_context&> begin_debug() {
+    debug_context<unique_context&> debug() {
         return { ( *this ) };
     }
     
@@ -265,7 +265,7 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    debug_context<context> begin_debug() {
+    debug_context<context> debug() {
         return { ( *this ) };
     }
 
@@ -416,7 +416,7 @@ public:
         return { *this, this->abs_stack_index( index_ ) };
     }
 
-    debug_context<shared_context> begin_debug() {
+    debug_context<shared_context> debug() {
         return { ( *this ) };
     }
 

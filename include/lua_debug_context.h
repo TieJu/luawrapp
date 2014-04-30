@@ -69,6 +69,7 @@ struct debug_context {
             lua_getinfo( l_, "nSlu", ar_ );
             } break;
         case LUA_HOOKLINE: {
+            lua_getinfo( l_, "nSlu", ar_ );
             auto ref = info->on_line_break.find( ar_->currentline );
             if ( ref != end( info->on_line_break ) ) {
                 ref->second( l_, ar_->currentline );
