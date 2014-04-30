@@ -357,25 +357,21 @@ struct type_trait<register_class_test_class> : class_trait_base<register_class_t
 
     static void reg_type( ::lua_State* l_ ) {
         auto tables = begin_class_reg( l_ );
-        auto metatable = tables._meta_table;
-        auto methods = tables._method_table;
-        auto geter = tables._geter_table;
-        auto seter = tables._seter_table;
         
-        add_method( l_, "print", methods, &register_class_test_class::print );
-        add_method( l_, "set_name", methods, &register_class_test_class::set_name );
-        add_method( l_, "get_name", methods, &register_class_test_class::get_name );
-        add_method( l_, "set_name2", methods, &register_class_test_class::set_name2 );
+        add_method( l_, "print", tables, &register_class_test_class::print );
+        add_method( l_, "set_name", tables, &register_class_test_class::set_name );
+        add_method( l_, "get_name", tables, &register_class_test_class::get_name );
+        add_method( l_, "set_name2", tables, &register_class_test_class::set_name2 );
 
         begin_overloaded_method( l_, "set" );
         add_overloaded_method_variant( l_, (void( register_class_test_class::*)(int)) &register_class_test_class::set );
         add_overloaded_method_variant( l_, (void( register_class_test_class::* )(const char*))&register_class_test_class::set );
-        end_overloaded_method( l_, methods );
+        end_overloaded_method( l_, tables );
 
-        add_property( l_, "my_name", geter, seter, &register_class_test_class::name_get, &register_class_test_class::name_set );
-        add_member( l_, "_name", geter, seter, &register_class_test_class::_name );
+        add_property( l_, "my_name", tables, &register_class_test_class::name_get, &register_class_test_class::name_set );
+        add_member( l_, "_name", tables, &register_class_test_class::_name );
 
-        add_constant( l_, "default", methods, "default" );
+        add_constant( l_, "default", tables, "default" );
         
         end_class_reg( l_, tables );
     }

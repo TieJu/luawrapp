@@ -15,6 +15,8 @@ public:
     global_var( global_var&& ) = default;
     global_var& operator=( global_var&& ) = default;
 
+    Context& context() { return _key.context(); }
+
     template<typename KeyType>
     global_var( Context ctx_, KeyType key_ ) : _key { std::forward<Context>( ctx_ ), ( ctx_.push( std::forward<KeyType>( key_ ) ), ctx_.get_top() ) } {}
 

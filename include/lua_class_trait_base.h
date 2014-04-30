@@ -1,22 +1,27 @@
 #pragma once
 namespace lua {
-    inline void dump_stack_types( ::lua_State* l_ ) {
-        for ( int i = 1; i <= lua_gettop( l_ ); ++i ) {
-            printf( "[%i] %s\r\n", i, lua_typename( l_, lua_type( l_, i ) ) );
-        }
-    }
 template<typename Class, typename Derived>
 struct class_trait_base {
     struct class_reg_state {
-        int     _meta_table
-            ,   _method_table
-            ,   _geter_table
-            ,   _seter_table
-            ,   _method_meta_table;
+        enum {
+            geter_offset = 0,
+            seter_offset = 1,
+            method_offset = 2,
+            meta_offset = 3,
+            method_meta_offset = 4
+        };
+        int _base;
+        int meta_table() { return meta_offset + _base; }
+        int method_table() { return method_offset + _base; }
+        int geter_table() { return geter_offset + _base; }
+        int seter_table() { return seter_offset + _base; }
+        int method_meta_table() { return method_meta_offset + _base; }
     };
+
     static class_reg_state begin_class_reg( ::lua_State* l_ ) {
         lua_newtable( l_ );
         int geter = lua_gettop( l_ );
+        auto base = geter;
         // local geter = {}
 
         lua_newtable( l_ );
@@ -75,16 +80,16 @@ struct class_trait_base {
         // setmetatable(methods, mt)
         // methods.new = <derived new>
 
-        return { metatable, methods, geter, seter, mt };
+        return { base };
     }
 
     static void end_class_reg( ::lua_State* l_, class_reg_state tables_ ) {
         lua_pushnil( l_ );
-        if ( lua_next( l_, tables_._geter_table ) ) {
+        if ( lua_next( l_, tables_.geter_table() ) ) {
             lua_pop( l_, 2 );
             lua_pushliteral( l_, "__index" );
-            lua_pushvalue( l_, tables_._geter_table );
-            lua_pushvalue( l_, tables_._method_table );
+            lua_pushvalue( l_, tables_.geter_table() );
+            lua_pushvalue( l_, tables_.method_table() );
             lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
                 // table, key
                 auto name = lua_tostring( l_, -1 );
@@ -110,16 +115,16 @@ struct class_trait_base {
                 lua_call( l_, 1, 1 );
                 return 1;
             }, 2 );
-            lua_settable( l_, tables_._meta_table );
+            lua_settable( l_, tables_.meta_table() );
         } else {
             lua_pop( l_, 1 );
         }
 
         lua_pushnil( l_ );
-        if ( lua_next( l_, tables_._seter_table ) ) {
+        if ( lua_next( l_, tables_.seter_table() ) ) {
             lua_pop( l_, 2 );
             lua_pushliteral( l_, "__newindex" );
-            lua_pushvalue( l_, tables_._seter_table );
+            lua_pushvalue( l_, tables_.seter_table() );
             lua_pushcclosure( l_, []( ::lua_State* l_ ) -> int {
                 // table, key, value
                 lua_pushvalue( l_, -2 );
@@ -141,7 +146,7 @@ struct class_trait_base {
                 lua_call( l_, 2, 0 );
                 return 0;
             }, 1 );
-            lua_settable( l_, tables_._meta_table );
+            lua_settable( l_, tables_.meta_table() );
         } else {
             lua_pop( l_, 1 );
         }
@@ -286,13 +291,13 @@ struct class_trait_base {
         lua_settable( l_, -3 );
     }
 
-    static void end_overloaded_method( ::lua_State* l_, int medthod_table_ ) {
+    static void end_overloaded_method( ::lua_State* l_, class_reg_state state_ ) {
         lua_pushcclosure( l_, overloaded_method_router, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
 
     template<typename RetType, typename... Args>
-    static void add_method( ::lua_State* l_, const char* name_, int medthod_table_, RetType( Class::*method_ )( Args... ) ) {
+    static void add_method( ::lua_State* l_, const char* name_, class_reg_state state_, RetType( Class::*method_ )( Args... ) ) {
         typedef decltype( method_ ) method_type;
         lua_pushstring( l_, name_ );
         *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
@@ -304,10 +309,11 @@ struct class_trait_base {
             auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
             return inoke_method( l_, &self, member, 2, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
         }, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
+
     template<typename... Args>
-    static void add_method( ::lua_State* l_, const char* name_, int medthod_table_, void( Class::*method_ )( Args... ) ) {
+    static void add_method( ::lua_State* l_, const char* name_, class_reg_state state_, void( Class::*method_ )( Args... ) ) {
         typedef decltype( method_ ) method_type;
         lua_pushstring( l_, name_ );
         *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
@@ -320,10 +326,11 @@ struct class_trait_base {
             inoke_method_nr( l_, &self, member, 2, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
             return 0;
         }, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
+
     template<typename RetType>
-    static void add_method( ::lua_State* l_, const char* name_, int medthod_table_, RetType( Class::*method_ )( ) ) {
+    static void add_method( ::lua_State* l_, const char* name_, class_reg_state state_, RetType( Class::*method_ )( ) ) {
         typedef decltype( method_ ) method_type;
         lua_pushstring( l_, name_ );
         *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
@@ -335,9 +342,10 @@ struct class_trait_base {
             auto member = *static_cast<const method_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
             return static_cast<int>( ::lua::push( l_, ( self.*member )( ) ) );
         }, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
-    static void add_method( ::lua_State* l_, const char* name_, int medthod_table_, void( Class::*method_ )( ) ) {
+
+    static void add_method( ::lua_State* l_, const char* name_, class_reg_state state_, void( Class::*method_ )( ) ) {
         typedef decltype( method_ ) method_type;
         lua_pushstring( l_, name_ );
         *static_cast<method_type*>( lua_newuserdata( l_, sizeof( method_type ) ) ) = method_;
@@ -350,7 +358,7 @@ struct class_trait_base {
             ( self.*member )( );
             return 0;
         }, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
 
     static void begin_overloaded_function( ::lua_State* l_, const char* name_ ) {
@@ -409,13 +417,13 @@ struct class_trait_base {
         lua_settable( l_, -3 );
     }
 
-    static void end_overloaded_function( ::lua_State* l_, int medthod_table_ ) {
+    static void end_overloaded_function( ::lua_State* l_, class_reg_state state_ ) {
         lua_pushcclosure( l_, overloaded_function_router, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
 
     template<typename RetType, typename... Args>
-    static void add_function( ::lua_State* l_, const char* name_, int medthod_table_, RetType( *function_ )( Args... ) ) {
+    static void add_function( ::lua_State* l_, const char* name_, class_reg_state state_, RetType( *function_ )( Args... ) ) {
         typedef decltype( function_ ) function_type;
         lua_pushstring( l_, name_ );
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
@@ -425,11 +433,11 @@ struct class_trait_base {
             }
             return invoke_function( l_, *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) ), 1, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
         }, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
 
     template<typename... Args>
-    static void add_function( ::lua_State* l_, const char* name_, int medthod_table_, void( *function_ )( Args... ) ) {
+    static void add_function( ::lua_State* l_, const char* name_, class_reg_state state_, void( *function_ )( Args... ) ) {
         typedef decltype( function_ ) function_type;
         lua_pushstring( l_, name_ );
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
@@ -440,11 +448,11 @@ struct class_trait_base {
             invoke_function_nr( l_, *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) ), 1, 1, typename tools::gen_seq<sizeof...( Args )>::type {} );
             return 0;
         }, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
 
     template<typename RetType>
-    static void add_function( ::lua_State* l_, const char* name_, int medthod_table_, RetType( *function_ )( ) ) {
+    static void add_function( ::lua_State* l_, const char* name_, class_reg_state state_, RetType( *function_ )( ) ) {
         typedef decltype( function_ ) function_type;
         lua_pushstring( l_, name_ );
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
@@ -455,10 +463,10 @@ struct class_trait_base {
             auto func = *static_cast<const function_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
             return ::lua::push( l_, func() );
         }, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
 
-    static void add_function( ::lua_State* l_, const char* name_, int medthod_table_, void( *function_ )( ) ) {
+    static void add_function( ::lua_State* l_, const char* name_, class_reg_state state_, void( *function_ )( ) ) {
         typedef decltype( function_ ) function_type;
         lua_pushstring( l_, name_ );
         *static_cast<function_type*>( lua_newuserdata( l_, sizeof( function_type ) ) ) = function_;
@@ -470,17 +478,17 @@ struct class_trait_base {
             func();
             return 0;
         }, 1 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
 
-    static void add_raw_function( ::lua_State* l_, const char* name_, int medthod_table_, lua_CFunction func_ ) {
+    static void add_raw_function( ::lua_State* l_, const char* name_, class_reg_state state_, lua_CFunction func_ ) {
         lua_pushstring( l_, name_ );
         lua_pushcclosure( l_, func_, 0 );
-        lua_settable( l_, medthod_table_ );
+        lua_settable( l_, state_.method_table() );
     }
 
     template<typename Type>
-    static void add_property( ::lua_State* l_, const char* name_, int geter_table_, int seter_table_, Type( Class::*geter_ )( ), void( Class::*seter_ )( Type ) ) {
+    static void add_property( ::lua_State* l_, const char* name_, class_reg_state state_, Type( Class::*geter_ )( ), void( Class::*seter_ )( Type ) ) {
         typedef decltype( geter_ ) geter_type;
         typedef decltype( seter_ ) seter_type;
         if ( geter_ ) {
@@ -491,7 +499,7 @@ struct class_trait_base {
                 auto geter = *reinterpret_cast<const geter_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
                 return static_cast<int>( ::lua::push( l_, ( self.*geter )( ) ) );
             }, 1 );
-            lua_settable( l_, geter_table_ );
+            lua_settable( l_, state_.geter_table() );
         }
 
         if ( seter_ ) {
@@ -503,12 +511,12 @@ struct class_trait_base {
                 ( self.*seter )( ::lua::to<Type>( l_, 2 ) );
                 return 0;
             }, 1 );
-            lua_settable( l_, seter_table_ );
+            lua_settable( l_, state_.seter_table() );
         }
     }
 
     template<typename Type>
-    static void add_static_property( ::lua_State* l_, const char* name_, int geter_table_, int seter_table_, Type( *geter_ )( ), void( *seter_ )( Type ) ) {
+    static void add_static_property( ::lua_State* l_, const char* name_, class_reg_state state_, Type( *geter_ )( ), void( *seter_ )( Type ) ) {
         typedef decltype( geter_ ) geter_type;
         typedef decltype( seter_ ) seter_type;
         if ( geter_ ) {
@@ -518,7 +526,7 @@ struct class_trait_base {
                 auto geter = *reinterpret_cast<const geter_type*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
                 return ::lua::push( l_, ( geter )( ) );
             }, 1 );
-            lua_settable( l_, geter_table_ );
+            lua_settable( l_, state_.geter_table() );
         }
 
         if ( seter_ ) {
@@ -529,12 +537,12 @@ struct class_trait_base {
                 ( seter )( ::lua::to<Type>( l_, 2 ) );// index 1 is the function table
                 return 0;
             }, 1 );
-            lua_settable( l_, seter_table_ );
+            lua_settable( l_, state_.seter_table() );
         }
     }
 
     template<typename Type>
-    static void add_member( ::lua_State* l_, const char* name_, int geter_table_, int seter_table_, Type Class::*member_ ) {
+    static void add_member( ::lua_State* l_, const char* name_, class_reg_state state_, Type Class::*member_ ) {
         typedef decltype( member_ ) member_pointer;
         lua_pushstring( l_, name_ );
         *reinterpret_cast<member_pointer*>( lua_newuserdata( l_, sizeof( member_pointer ) ) ) = member_;
@@ -543,7 +551,7 @@ struct class_trait_base {
             auto member = *reinterpret_cast<const member_pointer*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
             return static_cast<int>( ::lua::push( l_, self.*member ) );
         }, 1 );
-        lua_settable( l_, geter_table_ );
+        lua_settable( l_, state_.geter_table() );
 
         lua_pushstring( l_, name_ );
         *reinterpret_cast<member_pointer*>( lua_newuserdata( l_, sizeof( member_pointer ) ) ) = member_;
@@ -553,11 +561,11 @@ struct class_trait_base {
             ( self.*member ) = ::lua::to<Type>( l_, 2 );
             return 0;
         }, 1 );
-        lua_settable( l_, seter_table_ );
+        lua_settable( l_, state_.seter_table() );
     }
 
     template<typename Type>
-    static void add_static_member( ::lua_State* l_, const char* name_, int geter_table_, int seter_table_, Type *member_ ) {
+    static void add_static_member( ::lua_State* l_, const char* name_, class_reg_state state_, Type *member_ ) {
         typedef decltype( member_ ) member_pointer;
         lua_pushstring( l_, name_ );
         *reinterpret_cast<member_pointer*>( lua_newuserdata( l_, sizeof( member_pointer ) ) ) = member_;
@@ -565,7 +573,7 @@ struct class_trait_base {
             auto member = *reinterpret_cast<const member_pointer*>( lua_topointer( l_, lua_upvalueindex( 1 ) ) );
             return ::lua::push( l_, *member );
         }, 1 );
-        lua_settable( l_, geter_table_ );
+        lua_settable( l_, state_.geter_table() );
 
         lua_pushstring( l_, name_ );
         *reinterpret_cast<member_pointer*>( lua_newuserdata( l_, sizeof( member_pointer ) ) ) = member_;
@@ -575,17 +583,15 @@ struct class_trait_base {
             *member = ::lua::to<Type>( l_, 2 );
             return 0;
         }, 1 );
-        lua_settable( l_, seter_table_ );
+        lua_settable( l_, state_.seter_table() );
     }
 
     template<typename Type>
-    static void add_constant( ::lua_State* l_, const char* name_, int metatable_, Type value_ ) {
+    static void add_constant( ::lua_State* l_, const char* name_, class_reg_state state_, Type value_ ) {
         lua_pushstring( l_, name_ );
         ::lua::push( l_, std::forward<Type>( value_ ) );
-        lua_settable( l_, metatable_ );
+        lua_settable( l_, state_.method_table() );
     }
-
-
 
     static int on_to_string( ::lua_State* l_ ) {
         auto& self = Derived::to( l_, 1 );
